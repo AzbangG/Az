@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-# main.py - ARLEN -OTP OTP Spammer
+# main.py — AzTools | UI Layer
 
 import sys
 import time
-import platform
 import os
 import tty
 import termios
@@ -12,29 +11,33 @@ import random
 import threading
 import shutil
 import re
-from colorama import Fore, Style, init
+from colorama import Fore, Back, Style, init
 
 from main_engine import run_single_round, run_infinite_loop
 
 init(autoreset=True)
 
-VERSION = "1.0.0"
-TOOLS_NAME = "AZZ-OTP"
+VERSION   = "1.0.0"
+TOOLS_NAME = "AzTools"
+AUTHOR    = "Khaerul"
+TOTAL_API = 24
 
 exec_data = {
-    'target': '',
-    'threads': 5,
-    'total_api': 24,
-    'status': 'Initializing...',
-    'progress': 0,
-    'sent': 0,
-    'success': 0,
-    'failed': 0,
-    'last_log': 'Starting...'
+    'target'   : '',
+    'threads'  : 5,
+    'total_api': TOTAL_API,
+    'status'   : 'Initializing...',
+    'progress' : 0,
+    'sent'     : 0,
+    'success'  : 0,
+    'failed'   : 0,
+    'last_log' : 'Starting...',
+    'round'    : 0,
 }
 
-def clear_screen():
-    os.system('cls' if os.name == 'nt' else 'clear')
+# ══════════════════════════════════════════════
+# COLOR UTILITIES
+# ══════════════════════════════════════════════
 
 def rgb_color(tick, offset=0):
     r = int((math.sin(tick * 0.5 + offset) + 1) * 127)
@@ -42,362 +45,445 @@ def rgb_color(tick, offset=0):
     b = int((math.sin(tick * 0.5 + offset + 4) + 1) * 127)
     return f"\033[38;2;{r};{g};{b}m"
 
+def bg_rgb(r, g, b):
+    return f"\033[48;2;{r};{g};{b}m"
+
 def gradient_text(text, tick, offset=0):
-    result = ""
-    for i, char in enumerate(text):
-        color = rgb_color(tick, offset + i * 0.1)
-        result += f"{color}{char}{Style.RESET_ALL}"
-    return result
+    out = ""
+    for i, ch in enumerate(text):
+        out += f"{rgb_color(tick, offset + i * 0.1)}{ch}\033[0m"
+    return out
+
+def strip_ansi(text):
+    return re.sub(r'\x1b\[[0-9;]*m', '', text)
+
+def term_size():
+    try:
+        sz = shutil.get_terminal_size()
+        return max(sz.columns, 60), max(sz.lines, 24)
+    except Exception:
+        return 80, 24
+
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+# ══════════════════════════════════════════════
+# MATRIX BACKGROUND
+# ══════════════════════════════════════════════
 
 class MatrixBackground:
+    CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&'
+
     def __init__(self):
-        try:
-            self.width = shutil.get_terminal_size().columns
-            self.height = shutil.get_terminal_size().lines
-        except:
-            self.width = 80
-            self.height = 24
-        
-        self.width = max(40, self.width)
-        self.height = max(10, self.height)
-        
-        self.columns = []
-        self.chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()'
-        self.init_columns()
-    
-    def init_columns(self):
-        self.columns = []
+        self.width, self.height = term_size()
+        self.columns = self._init_columns()
+
+    def _init_columns(self):
+        cols = []
         for x in range(self.width):
             length = random.randint(8, 25)
-            col = {
-                'x': x,
-                'y': random.randint(-self.height, 0),
-                'speed': random.uniform(0.8, 2.5),
+            cols.append({
+                'x'     : x,
+                'y'     : random.randint(-self.height, 0),
+                'speed' : random.uniform(0.8, 2.5),
                 'length': length,
-                'chars': [random.choice(self.chars) for _ in range(length)],
-                'bright_pos': random.randint(0, length-1)
-            }
-            self.columns.append(col)
-    
+                'chars' : [random.choice(self.CHARS) for _ in range(length)],
+                'bright': random.randint(0, length - 1),
+            })
+        return cols
+
     def update(self):
         for col in self.columns:
             col['y'] += col['speed'] * 0.6
-            
             if col['y'] > self.height + col['length']:
-                col['y'] = random.randint(-self.height, 0)
+                col['y']      = random.randint(-self.height, 0)
                 col['length'] = random.randint(8, 25)
-                col['chars'] = [random.choice(self.chars) for _ in range(col['length'])]
-                col['speed'] = random.uniform(0.8, 2.5)
-                col['bright_pos'] = random.randint(0, col['length']-1)
-            
+                col['chars']  = [random.choice(self.CHARS) for _ in range(col['length'])]
+                col['speed']  = random.uniform(0.8, 2.5)
+                col['bright'] = random.randint(0, col['length'] - 1)
             if random.random() < 0.03:
                 for i in range(len(col['chars'])):
                     if random.random() < 0.3:
-                        col['chars'][i] = random.choice(self.chars)
-    
+                        col['chars'][i] = random.choice(self.CHARS)
+
     def render(self, overlay_lines=None):
-        sys.stdout.write('\033[?25l')
-        sys.stdout.write('\033[H')
-        
-        screen = []
-        for y in range(self.height):
-            screen.append([' ' for _ in range(self.width)])
-        
+        sys.stdout.write('\033[?25l\033[H')
+        screen = [[' '] * self.width for _ in range(self.height)]
+
         for col in self.columns:
-            x = col['x']
-            start_y = int(col['y'])
-            
-            for i in range(col['length']):
-                y = start_y + i
+            x, bp = col['x'], col['bright']
+            sy = int(col['y'])
+            for i, ch in enumerate(col['chars']):
+                y = sy + i
                 if 0 <= y < self.height and 0 <= x < self.width:
-                    char = col['chars'][i % len(col['chars'])]
-                    
-                    if i == col['bright_pos']:
-                        color = Fore.GREEN + Style.BRIGHT
-                    elif i < col['bright_pos'] + 4 and i > col['bright_pos'] - 2:
-                        color = Fore.GREEN
+                    if i == bp:
+                        c = '\033[1;92m'
+                    elif bp - 3 < i < bp + 2:
+                        c = '\033[32m'
                     else:
-                        color = Fore.GREEN + Style.DIM
-                    
-                    screen[y][x] = color + char + Style.RESET_ALL
-        
-        for y in range(self.height):
-            print(''.join(screen[y]))
-        
+                        c = '\033[2;32m'
+                    screen[y][x] = f"{c}{ch}\033[0m"
+
+        sys.stdout.write('\n'.join(''.join(row) for row in screen))
+
         if overlay_lines:
-            filtered = [line for line in overlay_lines if line.strip()]
-            overlay_height = len(filtered)
-            start_y = (self.height - overlay_height) // 2
-            
-            for i, line in enumerate(filtered):
-                if line.strip():
-                    clean_line = re.sub(r'\x1b\[[0-9;]*m', '', line)
-                    x_pos = (self.width - len(clean_line)) // 2
-                    if x_pos < 0:
-                        x_pos = 0
-                    sys.stdout.write(f'\033[{start_y + i};{x_pos}H')
-                    print(line, end='')
-        
+            lines  = [l for l in overlay_lines if l.strip() or l == '']
+            start_y = max(1, (self.height - len(lines)) // 2)
+            for i, line in enumerate(lines):
+                clean = strip_ansi(line)
+                xp    = max(0, (self.width - len(clean)) // 2)
+                sys.stdout.write(f'\033[{start_y + i};{xp}H{line}')
+
         sys.stdout.write('\033[?25h')
+        sys.stdout.flush()
+
+# ══════════════════════════════════════════════
+# LOADING SCREEN
+# ══════════════════════════════════════════════
+
+ASCII_LOGO = [
+    "  █████╗ ███████╗    ████████╗ ██████╗  ██████╗ ██╗     ███████╗",
+    " ██╔══██╗╚══███╔╝    ╚══██╔══╝██╔═══██╗██╔═══██╗██║     ██╔════╝",
+    " ███████║  ███╔╝        ██║   ██║   ██║██║   ██║██║     ███████╗ ",
+    " ██╔══██║ ███╔╝         ██║   ██║   ██║██║   ██║██║     ╚════██║ ",
+    " ██║  ██║███████╗       ██║   ╚██████╔╝╚██████╔╝███████╗███████║ ",
+    " ╚═╝  ╚═╝╚══════╝       ╚═╝    ╚═════╝  ╚═════╝ ╚══════╝╚══════╝",
+]
 
 def matrix_loading(duration=3):
     matrix = MatrixBackground()
-    
-    ascii_arlen = [
-        " █████╗ ███████╗████████╗ ██████╗  ██████╗  ██████╗ ██╗     ███████╗",
-        "██╔══██╗╚══███╔╝╚══██╔══╝██╔═══██╗██╔═══██╗██╔═══██╗██║     ██╔════╝",
-        "███████║  ███╔╝    ██║   ██║   ██║██║   ██║██║   ██║██║     ███████╗",
-        "██╔══██║ ███╔╝     ██║   ██║   ██║██║   ██║██║   ██║██║     ╚════██║",
-        "██║  ██║███████╗   ██║   ╚██████╔╝╚██████╔╝╚██████╔╝███████╗███████║",
-        "╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝  ╚═════╝  ╚═════╝ ╚══════╝╚══════╝"
-    ]
-    
-    start_time = time.time()
-    tick = 0
-    
-    while time.time() - start_time < duration:
+    start  = time.time()
+    tick   = 0.0
+
+    while time.time() - start < duration:
         tick += 0.05
         matrix.update()
-        
-        colored_ascii = []
-        for line in ascii_arlen:
-            colored_line = ""
-            for i, char in enumerate(line):
-                if char != ' ':
-                    color = rgb_color(tick, i * 0.1)
-                    colored_line += f"{color}{char}{Style.RESET_ALL}"
-                else:
-                    colored_line += " "
-            colored_ascii.append(colored_line)
-        
-        progress = (time.time() - start_time) / duration
-        dots = "." * (int((time.time() - start_time) * 2) % 4)
-        loading_text = f"LOADING{dots}"
-        loading_color = rgb_color(tick, 2)
-        
-        bar_length = min(40, matrix.width - 20)
-        filled = int(bar_length * progress)
-        bar = "█" * filled + "░" * (bar_length - filled)
-        bar_color = rgb_color(tick, 3)
-        
-        status_color = rgb_color(tick, 4)
-        status_text = "INITIALIZING" if progress < 0.3 else "LOADING" if progress < 0.6 else "PREPARING" if progress < 0.8 else "READY"
-        
+
+        progress = (time.time() - start) / duration
+        pct      = int(progress * 100)
+
+        colored_logo = []
+        for line in ASCII_LOGO:
+            cl = ""
+            for i, ch in enumerate(line):
+                cl += f"{rgb_color(tick, i * 0.08)}{ch}\033[0m" if ch != ' ' else ' '
+            colored_logo.append(cl)
+
+        w       = matrix.width
+        bar_len = min(46, w - 14)
+        filled  = int(bar_len * progress)
+        bar     = '█' * filled + '░' * (bar_len - filled)
+        bar_c   = rgb_color(tick, 3)
+        pct_c   = rgb_color(tick, 5)
+
+        dc     = int((time.time() - start) * 3) % 4
+        dots   = '·' * dc + ' ' * (3 - dc)
+        status = (
+            'INITIALIZING'    if progress < 0.25 else
+            'LOADING MODULES' if progress < 0.55 else
+            'PREPARING'       if progress < 0.80 else
+            'READY'
+        )
+
+        div = f"{rgb_color(tick, 2)}{'─' * min(50, w - 4)}\033[0m"
+
         overlay = [
-            "",
-            *colored_ascii,
-            "",
-            f"{loading_color}{loading_text}{Style.RESET_ALL}",
-            "",
-            f"{bar_color}[{bar}] {int(progress * 100)}%{Style.RESET_ALL}",
-            "",
-            f"{status_color}{'─' * 20}{Style.RESET_ALL}",
-            f"{status_color}  {status_text}  {Style.RESET_ALL}",
-            f"{status_color}{'─' * 20}{Style.RESET_ALL}",
+            '',
+            *colored_logo,
+            '',
+            div,
+            f"{rgb_color(tick, 1)}  {TOOLS_NAME}  ·  v{VERSION}  ·  by {AUTHOR}  ·  {TOTAL_API} APIs\033[0m",
+            div,
+            '',
+            f"{bar_c}[{bar}] {pct_c}{pct}%\033[0m",
+            f"{rgb_color(tick, 6)}{status}{dots}\033[0m",
+            '',
         ]
-        
+
         matrix.render(overlay)
         time.sleep(0.03)
-    
+
     sys.stdout.write('\033[?25h')
     sys.stdout.flush()
 
-def print_banner(tick=0):
-    color = rgb_color(tick)
-    reset = Style.RESET_ALL
-    
-    title = gradient_text("AZZ -OTP", tick, 0)
-    
-    banner = f"""
-  ┌──────────────────────────────────────────────────────┐
-  │                     {title}                       │
-  └──────────────────────────────────────────────────────┘
+# ══════════════════════════════════════════════
+# BANNER
+# ══════════════════════════════════════════════
 
-  ┌──────────────────────────────────────────────────────┐
-  │  {color}API{reset}  : 24  │  {color}Version{reset}  : 1.0.0  │  {color}Dev{reset}  : Khaerul     │
-  └──────────────────────────────────────────────────────┘{reset}
-"""
-    print(banner)
+def print_banner(tick=0):
+    w, _  = term_size()
+    box_w = min(64, w - 4)
+    inner = box_w - 2
+    R     = Style.RESET_ALL
+    bc    = rgb_color(tick, 1)
+    ac    = rgb_color(tick, 4)
+    mc    = rgb_color(tick, 2)
+    dim   = '\033[2m'
+
+    title     = gradient_text(f"  {TOOLS_NAME}  —  OTP TOOL  ", tick, 0)
+    title_pad = max(0, inner - len(strip_ansi(title)))
+
+    meta     = f"  {mc}API{R}{dim}:{R}{ac}{TOTAL_API}{R}   {mc}VER{R}{dim}:{R}{ac}{VERSION}{R}   {mc}DEV{R}{dim}:{R}{ac}{AUTHOR}{R}  "
+    meta_pad = max(0, inner - len(strip_ansi(meta)))
+
+    print(f"\n  {bc}╔{'═' * box_w}╗{R}")
+    print(f"  {bc}║{R}{title}{' ' * title_pad}{bc}║{R}")
+    print(f"  {bc}╠{'═' * box_w}╣{R}")
+    print(f"  {bc}║{R}{meta}{' ' * meta_pad}{bc}║{R}")
+    print(f"  {bc}╚{'═' * box_w}╝{R}\n")
+
+# ══════════════════════════════════════════════
+# MENU
+# ══════════════════════════════════════════════
+
+_MENU_ITEMS = [
+    ('◈  Single Round',  'Sekali kirim ke semua API'),
+    ('⟳  Infinite Loop', 'Kirim berulang nonstop   '),
+    ('✕  Keluar',        'Tutup aplikasi           '),
+]
 
 def print_menu(selected=0, tick=0):
-    color1 = rgb_color(tick, 0)
-    color2 = rgb_color(tick, 1)
-    color3 = rgb_color(tick, 2)
-    reset = Style.RESET_ALL
-    
-    items = [
-        ("▶ Single Round", "Sekali kirim ke semua API ", color1),
-        ("⟳ Infinite Loop", "Kirim berulang dengan jeda", color2),
-        ("✕ Keluar", "Tutup aplikasi            ", color3)
-    ]
-    
-    menu = f"""
-  📋 MENU UTAMA                                        
-                                                         
-"""
-    
-    for i, (label, desc, color) in enumerate(items):
+    w, _  = term_size()
+    box_w = min(64, w - 4)
+    inner = box_w - 2
+    R     = Style.RESET_ALL
+    bc    = rgb_color(tick, 1)
+    hc    = rgb_color(tick, 3)
+
+    header     = f"  ◆  MENU UTAMA"
+    header_pad = max(0, inner - len(header) + 2)
+
+    print(f"  {bc}╔{'═' * box_w}╗{R}")
+    print(f"  {bc}║{R}{hc}{header}{R}{' ' * header_pad}{bc}║{R}")
+    print(f"  {bc}╠{'═' * box_w}╣{R}")
+
+    for i, (label, desc) in enumerate(_MENU_ITEMS):
         if i == selected:
-            menu += f"  ┌──────────────────────────────────────────────────────┐\n"
-            menu += f"  │  {color}▶ {reset}{label:<16}─ {desc}      │\n"
-            menu += f"  └──────────────────────────────────────────────────────┘\n"
+            sc      = rgb_color(tick, i * 1.5)
+            content = f"  {sc}▶  {label:<22}{R}  \033[2m{desc}{R}  "
+            cpad    = max(0, inner - len(strip_ansi(content)) + 2)
+            print(f"  {bc}║{R}{bg_rgb(0, 28, 0)}{content}{' ' * cpad}\033[0m{bc}║{R}")
         else:
-            grad_label = gradient_text(label, tick, i * 2)
-            menu += f"  •    {grad_label:<18}─ {desc} \n"
-    
-    menu += f"""
-  ┌──────────────────────────────────────────────────────┐
-  │  {color1}↑/↓{reset}  : Navigasi  │  {color1}ENTER{reset}  : Pilih  │  {color1}Q{reset}  : Keluar  │
-  └──────────────────────────────────────────────────────┘{reset}
-"""
-    print(menu)
+            gl      = gradient_text(f"   {label}", tick, i * 2.0)
+            content = f"  {gl}  \033[2;37m{desc}{R}  "
+            cpad    = max(0, inner - len(strip_ansi(content)) + 2)
+            print(f"  {bc}║{R}{content}{' ' * cpad}{bc}║{R}")
 
-def print_loading_animation(message="Processing", duration=1):
-    chars = ['◐', '◓', '◑', '◒']
-    tick = 0
-    start = time.time()
-    
-    while time.time() - start < duration:
-        tick += 0.1
-        color = rgb_color(tick)
-        idx = int((time.time() - start) * 8) % 4
-        sys.stdout.write(f'\r{color}{chars[idx]} {message}...{Style.RESET_ALL}')
-        sys.stdout.flush()
-        time.sleep(0.05)
-    print('\r' + ' ' * 50 + '\r', end='')
+        if i < len(_MENU_ITEMS) - 1:
+            print(f"  {bc}╟{'─' * box_w}╢{R}")
 
-def input_with_animation(prompt, duration=2):
-    chars = ['█', '▓', '▒', '░']
-    tick = 0
-    start = time.time()
-    
-    print(f"\n{Fore.CYAN}╔{'═' * 50}╗{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}║{Style.RESET_ALL}  {Fore.WHITE}📱 MASUKKAN NOMOR TARGET{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}╚{'═' * 50}╝{Style.RESET_ALL}\n")
-    
-    while time.time() - start < duration:
-        tick += 0.1
-        color = rgb_color(tick)
-        idx = int((time.time() - start) * 4) % 4
-        sys.stdout.write(f'\r{Fore.GREEN}  ┌─{Fore.YELLOW} Masukkan nomor target {color}{chars[idx]}{Style.RESET_ALL}')
-        sys.stdout.flush()
-        time.sleep(0.05)
-    
-    print("\r" + " " * 60 + "\r", end='')
-    print(f"{Fore.GREEN}  └─{Fore.WHITE} ➜ {Style.RESET_ALL}", end='')
-    target = input()
-    return target.strip()
+    print(f"  {bc}╠{'═' * box_w}╣{R}")
+    hintc   = rgb_color(tick, 5)
+    hint    = f"  {hintc}↑ ↓{R}  Navigasi   {hintc}ENTER{R}  Pilih   {hintc}Q{R}  Keluar  "
+    hintpad = max(0, inner - len(strip_ansi(hint)) + 2)
+    print(f"  {bc}║{R}{hint}{' ' * hintpad}{bc}║{R}")
+    print(f"  {bc}╚{'═' * box_w}╝{R}\n")
+
+# ══════════════════════════════════════════════
+# EXECUTION TABLE
+# ══════════════════════════════════════════════
+
+def _row(label, value, lc, vc, bc, box_w):
+    R       = Style.RESET_ALL
+    content = f"  {lc}{label:<10}{R}  {vc}{value}{R}"
+    pad     = max(0, (box_w - 2) - len(strip_ansi(content)) + 2)
+    return f"  {bc}║{R}{content}{' ' * pad}{bc}║{R}"
 
 def show_execution_table(data, tick=0):
     clear_screen()
-    color = rgb_color(tick)
-    
-    print(f"{Fore.CYAN}┌{'─' * 58}┐{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}│{Style.RESET_ALL}  {color}⚡ EKSEKUSI OTP SPAMMER{Style.RESET_ALL}{' ' * (58 - 22 - len('⚡ EKSEKUSI OTP SPAMMER'))}{Fore.CYAN}│{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}├{'─' * 58}┤{Style.RESET_ALL}")
-    
-    print(f"{Fore.CYAN}│{Style.RESET_ALL}  {Fore.GREEN}Target    :{Style.RESET_ALL} {Fore.YELLOW}{data.get('target', 'N/A')}{' ' * (58 - 12 - len(str(data.get('target', 'N/A'))))}{Fore.CYAN}│{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}│{Style.RESET_ALL}  {Fore.GREEN}Thread    :{Style.RESET_ALL} {Fore.YELLOW}{data.get('threads', 5)}{' ' * (58 - 12 - len(str(data.get('threads', 5))))}{Fore.CYAN}│{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}│{Style.RESET_ALL}  {Fore.GREEN}API Total :{Style.RESET_ALL} {Fore.YELLOW}{data.get('total_api', 24)}{' ' * (58 - 12 - len(str(data.get('total_api', 24))))}{Fore.CYAN}│{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}│{Style.RESET_ALL}  {Fore.GREEN}Status    :{Style.RESET_ALL} {color}{data.get('status', 'Running...')}{' ' * (58 - 12 - len(str(data.get('status', 'Running...'))))}{Fore.CYAN}│{Style.RESET_ALL}")
-    
-    progress = data.get('progress', 0)
-    bar_length = 30
-    filled = int(bar_length * progress / 100)
-    bar = "█" * filled + "░" * (bar_length - filled)
-    print(f"{Fore.CYAN}│{Style.RESET_ALL}  {Fore.GREEN}Progress  :{Style.RESET_ALL} {color}[{bar}] {progress}%{' ' * (58 - 14 - len(f'[{bar}] {progress}%'))}{Fore.CYAN}│{Style.RESET_ALL}")
-    
-    print(f"{Fore.CYAN}├{'─' * 58}┤{Style.RESET_ALL}")
-    
-    sent = data.get('sent', 0)
+    w, _  = term_size()
+    box_w = min(64, w - 4)
+    inner = box_w - 2
+    R     = Style.RESET_ALL
+    bc    = rgb_color(tick, 1)
+    lc    = '\033[0;32m'
+    ac    = rgb_color(tick, 3)
+    dim   = '\033[2;37m'
+
+    # header
+    title     = f"  ⚡  {TOOLS_NAME}  —  EKSEKUSI"
+    title_pad = max(0, inner - len(title) + 2)
+    print(f"  {bc}╔{'═' * box_w}╗{R}")
+    print(f"  {bc}║{R}{ac}{title}{R}{' ' * title_pad}{bc}║{R}")
+    print(f"  {bc}╠{'═' * box_w}╣{R}")
+
+    # info
+    print(_row('TARGET',  str(data.get('target',    'N/A')),   lc, '\033[1;33m', bc, box_w))
+    print(_row('THREAD',  str(data.get('threads',   5)),       lc, '\033[0;36m', bc, box_w))
+    print(_row('API',     str(data.get('total_api', TOTAL_API)), lc, '\033[0;36m', bc, box_w))
+    print(_row('ROUND',   str(data.get('round',     0)),       lc, '\033[0;35m', bc, box_w))
+    print(_row('STATUS',  str(data.get('status',    '...')),   lc, ac,           bc, box_w))
+
+    # progress bar
+    print(f"  {bc}╠{'═' * box_w}╣{R}")
+    prog    = max(0, min(100, data.get('progress', 0)))
+    blen    = max(10, inner - 16)
+    filled  = int(blen * prog / 100)
+    bar     = '█' * filled + '░' * (blen - filled)
+    pct     = f"{prog:>3}%"
+    brow    = f"  {lc}PROGRESS{R}  {rgb_color(tick, 4)}[{bar}] {pct}{R}"
+    bpad    = max(0, inner - len(strip_ansi(brow)) + 2)
+    print(f"  {bc}║{R}{brow}{' ' * bpad}{bc}║{R}")
+
+    # stats
+    print(f"  {bc}╠{'═' * box_w}╣{R}")
+    sent    = data.get('sent',    0)
     success = data.get('success', 0)
-    failed = data.get('failed', 0)
-    print(f"{Fore.CYAN}│{Style.RESET_ALL}  {Fore.GREEN}Sent    :{Style.RESET_ALL} {Fore.YELLOW}{sent:>4}{Style.RESET_ALL}  {Fore.GREEN}Success :{Style.RESET_ALL} {Fore.GREEN}{success:>4}{Style.RESET_ALL}  {Fore.GREEN}Failed  :{Style.RESET_ALL} {Fore.RED}{failed:>4}{Style.RESET_ALL}  {Fore.CYAN}│{Style.RESET_ALL}")
-    
-    if data.get('last_log'):
-        log_text = data['last_log'][:40]
-        spaces = 58 - 12 - len(log_text)
-        if spaces < 0:
-            spaces = 0
-            log_text = log_text[:40]
-        
-        log_color = Fore.WHITE
-        if 'success' in data['last_log'].lower():
-            log_color = Fore.GREEN
-        elif 'fail' in data['last_log'].lower() or 'error' in data['last_log'].lower():
-            log_color = Fore.RED
-        elif 'limit' in data['last_log'].lower() or 'block' in data['last_log'].lower():
-            log_color = Fore.YELLOW
-        
-        print(f"{Fore.CYAN}│{Style.RESET_ALL}  {Fore.GREEN}Last Log :{Style.RESET_ALL} {log_color}{log_text}{' ' * spaces}{Fore.CYAN}│{Style.RESET_ALL}")
-    
-    print(f"{Fore.CYAN}└{'─' * 58}┘{Style.RESET_ALL}")
+    failed  = data.get('failed',  0)
+    rate    = f"{int(success / max(1, sent) * 100)}%" if sent else "─"
+    stats   = (
+        f"  {lc}SENT{R} \033[1;33m{sent:>4}{R}"
+        f"   {lc}OK{R} \033[1;32m{success:>4}{R}"
+        f"   {lc}FAIL{R} \033[1;31m{failed:>4}{R}"
+        f"   {lc}RATE{R} \033[1;36m{rate}{R}  "
+    )
+    spad = max(0, inner - len(strip_ansi(stats)) + 2)
+    print(f"  {bc}║{R}{stats}{' ' * spad}{bc}║{R}")
+
+    # last log
+    print(f"  {bc}╠{'═' * box_w}╣{R}")
+    raw_log  = str(data.get('last_log', ''))
+    log_text = raw_log[:inner - 14]
+    ll       = raw_log.lower()
+    if 'success' in ll or 'ok' in ll:
+        lcolor = '\033[1;32m'
+    elif 'fail' in ll or 'error' in ll or 'timeout' in ll:
+        lcolor = '\033[1;31m'
+    elif 'limit' in ll or 'block' in ll or 'rate' in ll:
+        lcolor = '\033[1;33m'
+    else:
+        lcolor = '\033[0;37m'
+    logrow = f"  {lc}LOG{R}       {lcolor}{log_text}{R}"
+    lpad   = max(0, inner - len(strip_ansi(logrow)) + 2)
+    print(f"  {bc}║{R}{logrow}{' ' * lpad}{bc}║{R}")
+    print(f"  {bc}╚{'═' * box_w}╝{R}")
+    print(f"\n  {dim}CTRL+C untuk berhenti{R}")
+
+# ══════════════════════════════════════════════
+# INPUT & ANIMATION HELPERS
+# ══════════════════════════════════════════════
+
+def print_loading_animation(message="Processing", duration=1):
+    spins = ['◐', '◓', '◑', '◒']
+    start = time.time()
+    tick  = 0.0
+    while time.time() - start < duration:
+        tick += 0.1
+        sp   = spins[int((time.time() - start) * 8) % 4]
+        sys.stdout.write(f'\r  {rgb_color(tick)}{sp}  {message}...{Style.RESET_ALL}   ')
+        sys.stdout.flush()
+        time.sleep(0.05)
+    print('\r' + ' ' * 60 + '\r', end='')
+
+def input_with_animation(prompt="Masukkan nomor target", duration=1.5):
+    w, _  = term_size()
+    box_w = min(56, w - 6)
+    R     = Style.RESET_ALL
+    spins = ['◐', '◓', '◑', '◒']
+    tick  = 0.0
+    start = time.time()
+    bc    = rgb_color(0.5, 1)
+
+    print()
+    print(f"  {bc}╔{'═' * box_w}╗{R}")
+    header    = f"  📱  {prompt.upper()}"
+    hpad      = max(0, box_w - len(header) + 2)
+    print(f"  {bc}║{R}\033[1;37m{header}{R}{' ' * hpad}{bc}║{R}")
+    print(f"  {bc}╠{'═' * box_w}╣{R}")
+
+    while time.time() - start < duration:
+        tick += 0.1
+        sp = spins[int((time.time() - start) * 6) % 4]
+        sys.stdout.write(
+            f"\r  {bc}║{R}  {rgb_color(tick)}{sp}{R}  Siapkan nomor \033[2m(08xx...){R}  {' ' * 8}"
+        )
+        sys.stdout.flush()
+        time.sleep(0.05)
+
+    sys.stdout.write(f"\r  {bc}║{R}  \033[0;32m➜{R}  ")
+    sys.stdout.flush()
+    value = input().strip()
+    print(f"  {bc}╚{'═' * box_w}╝{R}")
+    return value
+
+# ══════════════════════════════════════════════
+# KEY INPUT
+# ══════════════════════════════════════════════
 
 def get_key():
     try:
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
+        fd  = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
         try:
-            tty.setraw(sys.stdin.fileno())
+            tty.setraw(fd)
             ch = sys.stdin.read(1)
             if ch == '\x1b':
                 ch += sys.stdin.read(2)
             return ch
         finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    except:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+    except Exception:
         try:
             import msvcrt
             return msvcrt.getch().decode()
-        except:
+        except Exception:
             return None
+
+# ══════════════════════════════════════════════
+# EXEC DATA UPDATE
+# ══════════════════════════════════════════════
 
 def update_exec_data(name, status, detail=""):
     global exec_data
-    exec_data['last_log'] = f"{name}: {status} {detail}"
+    exec_data['last_log'] = f"{name}: {status}" + (f" — {detail}" if detail else "")
     if status == "SUCCESS":
         exec_data['success'] += 1
-    elif status == "FAIL" or status == "ERROR" or status == "TIMEOUT":
+    elif status in ("FAIL", "ERROR", "TIMEOUT"):
         exec_data['failed'] += 1
     exec_data['sent'] += 1
-    total = exec_data.get('total_api', 24)
-    sent = exec_data.get('sent', 0)
-    exec_data['progress'] = int((sent / total) * 100)
-    if exec_data['progress'] > 100:
-        exec_data['progress'] = 100
+    total = exec_data.get('total_api', TOTAL_API)
+    sent  = exec_data.get('sent', 0)
+    exec_data['progress'] = min(100, int(sent / max(1, total) * 100))
+
+# ══════════════════════════════════════════════
+# RUN WITH UI
+# ══════════════════════════════════════════════
 
 def run_with_ui(engine_func, target, threads=5):
     global exec_data
-    
-    exec_data['target'] = target
-    exec_data['threads'] = threads
-    exec_data['total_api'] = 24
-    exec_data['status'] = 'Running...'
-    exec_data['progress'] = 0
-    exec_data['sent'] = 0
-    exec_data['success'] = 0
-    exec_data['failed'] = 0
-    exec_data['last_log'] = 'Initializing...'
-    
-    stop_update = False
-    
-    def update_ui():
-        tick = 0
-        while not stop_update:
+
+    exec_data.update({
+        'target'   : target,
+        'threads'  : threads,
+        'total_api': TOTAL_API,
+        'status'   : 'Running...',
+        'progress' : 0,
+        'sent'     : 0,
+        'success'  : 0,
+        'failed'   : 0,
+        'last_log' : 'Initializing...',
+        'round'    : exec_data.get('round', 0) + 1,
+    })
+
+    stop_flag = threading.Event()
+
+    def ui_loop():
+        tick = 0.0
+        while not stop_flag.is_set():
             tick += 0.1
             show_execution_table(exec_data, tick)
             time.sleep(0.1)
-    
-    update_thread = threading.Thread(target=update_ui, daemon=True)
-    update_thread.start()
-    
+
+    ui_thread = threading.Thread(target=ui_loop, daemon=True)
+    ui_thread.start()
+
     try:
         if engine_func == run_single_round:
             result = run_single_round(threads=threads, target=target, callback=update_exec_data)
         else:
             result = run_infinite_loop(target=target, callback=update_exec_data)
-        
-        exec_data['status'] = 'Completed' if result else 'Failed'
+
+        exec_data['status']   = 'Completed' if result else 'Failed'
         exec_data['progress'] = 100
         time.sleep(1)
         return result
@@ -405,178 +491,119 @@ def run_with_ui(engine_func, target, threads=5):
         exec_data['status'] = 'Stopped'
         raise
     finally:
-        stop_update = True
-        time.sleep(0.5)
+        stop_flag.set()
+        ui_thread.join(timeout=1.0)
+
+# ══════════════════════════════════════════════
+# MENU NAVIGATION
+# ══════════════════════════════════════════════
+
+def _exit_clean():
+    R = Style.RESET_ALL
+    print(f"\n  {rgb_color(1.0, 1)}◐{R}  Keluar...")
+    time.sleep(0.4)
+    print(f"  \033[1;32m✓{R}  Sampai jumpa! 👋\n")
+    sys.exit(0)
+
+def _handle_choice(choice):
+    R = Style.RESET_ALL
+    clear_screen()
+    target = input_with_animation("Masukkan nomor target", 1.5)
+    if not target:
+        print(f"\n  \033[1;31m✗{R}  Nomor tidak boleh kosong!")
+        time.sleep(1.2)
+        return
+
+    label  = "Single Round" if choice == "single" else "Infinite Loop"
+    engine = run_single_round if choice == "single" else run_infinite_loop
+
+    print_loading_animation(f"Memulai {label}", 1)
+    clear_screen()
+
+    print(f"\n  \033[1;33m⚡{R}  Mode \033[1;37m{label}{R} — target \033[1;36m{target}{R}")
+    if choice == "infinite":
+        print(f"  \033[2;33mMode ini berjalan terus hingga CTRL+C{R}")
+    print(f"  \033[2;37mTekan CTRL+C untuk menghentikan{R}\n")
+    time.sleep(0.6)
+
+    try:
+        run_with_ui(engine, target, threads=5)
+    except KeyboardInterrupt:
+        print(f"\n\n  \033[1;33m⚠{R}  Proses dihentikan.")
+
+    print(f"\n  \033[1;32m✓{R}  Selesai!")
+    print(f"  \033[2;37mTekan Enter untuk kembali ke menu...{R}")
+    input()
 
 def menu_navigation():
-    selected = 0
-    items = ["single", "infinite", "exit"]
-    tick = 0
-    
+    items     = ["single", "infinite", "exit"]
+    selected  = 0
+    tick      = 0.0
+    is_termux = os.path.exists("/data/data/com.termux/files/usr")
+
     while True:
         try:
             clear_screen()
             tick += 0.05
             print_banner(tick)
             print_menu(selected, tick)
-            
-            is_termux = os.path.exists("/data/data/com.termux/files/usr")
-            
+
             if is_termux:
                 key = get_key()
-                
-                if key == '\x1b[A':  
+                if key == '\x1b[A':
                     selected = (selected - 1) % len(items)
-                elif key == '\x1b[B':  
+                elif key == '\x1b[B':
                     selected = (selected + 1) % len(items)
-                elif key in ['\r', '\n', '\x1b[C']:  
+                elif key in ('\r', '\n', '\x1b[C'):
                     choice = items[selected]
-                    if choice == "single":
-                        clear_screen()
-                        target = input_with_animation("Masukkan nomor target", 1)
-                        if not target:
-                            print(f"\n{Fore.RED}✗ Nomor tidak boleh kosong!{Style.RESET_ALL}")
-                            time.sleep(1)
-                            continue
-                        
-                        print_loading_animation("Memulai Single Round", 1)
-                        clear_screen()
-                        
-                        print(f"\n{Fore.YELLOW}⚠️  Menjalankan Single Round...{Style.RESET_ALL}")
-                        print(f"{Fore.CYAN}   Tekan {Fore.RED}CTRL+C{Fore.CYAN} untuk berhenti{Style.RESET_ALL}")
-                        print()
-                        time.sleep(0.5)
-                        
-                        try:
-                            run_with_ui(run_single_round, target, threads=5)
-                        except KeyboardInterrupt:
-                            print(f"\n\n{Fore.YELLOW}⚠️ Proses dihentikan oleh user{Style.RESET_ALL}")
-                        
-                        print(f"\n{Fore.GREEN}✓ Proses selesai!{Style.RESET_ALL}")
-                        print(f"\n{Fore.YELLOW}⏎ Tekan Enter untuk kembali...{Style.RESET_ALL}")
-                        input()
-                        
-                    elif choice == "infinite":
-                        clear_screen()
-                        target = input_with_animation("Masukkan nomor target", 1)
-                        if not target:
-                            print(f"\n{Fore.RED}✗ Nomor tidak boleh kosong!{Style.RESET_ALL}")
-                            time.sleep(1)
-                            continue
-                        
-                        print_loading_animation("Memulai Infinite Loop", 1)
-                        clear_screen()
-                        
-                        print(f"\n{Fore.YELLOW}⚠️  Mode Infinite Loop akan berjalan terus menerus{Style.RESET_ALL}")
-                        print(f"{Fore.YELLOW}   Tekan {Fore.RED}CTRL+C{Fore.YELLOW} untuk berhenti{Style.RESET_ALL}")
-                        print()
-                        time.sleep(1)
-                        
-                        try:
-                            run_with_ui(run_infinite_loop, target, threads=5)
-                        except KeyboardInterrupt:
-                            print(f"\n\n{Fore.YELLOW}⚠️ Proses dihentikan oleh user{Style.RESET_ALL}")
-                        
-                        print(f"\n{Fore.GREEN}✓ Proses selesai!{Style.RESET_ALL}")
-                        print(f"\n{Fore.YELLOW}⏎ Tekan Enter untuk kembali...{Style.RESET_ALL}")
-                        input()
-                        
-                    elif choice == "exit":
-                        print(f"\n{Fore.CYAN}◐ {Fore.WHITE}Keluar...{Style.RESET_ALL}")
-                        time.sleep(0.5)
-                        print(f"{Fore.GREEN}✓ Sampai jumpa! 👋{Style.RESET_ALL}")
-                        sys.exit(0)
-                        
-                elif key in ['q', 'Q']:
-                    print(f"\n{Fore.CYAN}◐ {Fore.WHITE}Keluar...{Style.RESET_ALL}")
-                    time.sleep(0.5)
-                    print(f"{Fore.GREEN}✓ Sampai jumpa! 👋{Style.RESET_ALL}")
-                    sys.exit(0)
+                    if choice == 'exit':
+                        _exit_clean()
+                    else:
+                        _handle_choice(choice)
+                elif key in ('q', 'Q'):
+                    _exit_clean()
             else:
-                print(f"\n{Fore.YELLOW}ℹ️  Mode keyboard tidak tersedia, gunakan input angka{Style.RESET_ALL}")
-                print(f"{Fore.CYAN}   [1] Single Round{Style.RESET_ALL}")
-                print(f"{Fore.CYAN}   [2] Infinite Loop{Style.RESET_ALL}")
-                print(f"{Fore.CYAN}   [3] Keluar{Style.RESET_ALL}")
-                choice = input(f"\n{Fore.WHITE}Pilih (1/2/3): {Style.RESET_ALL}").strip()
-                
-                if choice == "1":
-                    clear_screen()
-                    target = input(f"{Fore.WHITE}Nomor target (08xx): {Style.RESET_ALL}").strip()
-                    if not target:
-                        print(f"\n{Fore.RED}✗ Nomor tidak boleh kosong!{Style.RESET_ALL}")
-                        time.sleep(1)
-                        continue
-                    
-                    try:
-                        run_with_ui(run_single_round, target, threads=5)
-                    except KeyboardInterrupt:
-                        print(f"\n\n{Fore.YELLOW}⚠️ Proses dihentikan oleh user{Style.RESET_ALL}")
-                    
-                    print(f"\n{Fore.GREEN}✓ Proses selesai!{Style.RESET_ALL}")
-                    print(f"\n{Fore.YELLOW}⏎ Tekan Enter untuk kembali...{Style.RESET_ALL}")
-                    input()
-                    
-                elif choice == "2":
-                    clear_screen()
-                    target = input(f"{Fore.WHITE}Nomor target (08xx): {Style.RESET_ALL}").strip()
-                    if not target:
-                        print(f"\n{Fore.RED}✗ Nomor tidak boleh kosong!{Style.RESET_ALL}")
-                        time.sleep(1)
-                        continue
-                    
-                    print(f"\n{Fore.YELLOW}⚠️  Mode Infinite Loop akan berjalan terus menerus{Style.RESET_ALL}")
-                    print(f"{Fore.YELLOW}   Tekan {Fore.RED}CTRL+C{Fore.YELLOW} untuk berhenti{Style.RESET_ALL}")
-                    print()
-                    time.sleep(1)
-                    
-                    try:
-                        run_with_ui(run_infinite_loop, target, threads=5)
-                    except KeyboardInterrupt:
-                        print(f"\n\n{Fore.YELLOW}⚠️ Proses dihentikan oleh user{Style.RESET_ALL}")
-                    
-                    print(f"\n{Fore.GREEN}✓ Proses selesai!{Style.RESET_ALL}")
-                    print(f"\n{Fore.YELLOW}⏎ Tekan Enter untuk kembali...{Style.RESET_ALL}")
-                    input()
-                    
-                elif choice == "3":
-                    print(f"\n{Fore.CYAN}◐ {Fore.WHITE}Keluar...{Style.RESET_ALL}")
-                    time.sleep(0.5)
-                    print(f"{Fore.GREEN}✓ Sampai jumpa! 👋{Style.RESET_ALL}")
-                    sys.exit(0)
-                    
+                R = Style.RESET_ALL
+                print(f"  \033[2;37mNavigasi keyboard tidak tersedia — gunakan angka{R}")
+                print(f"  \033[0;36m[1]{R} Single Round   \033[0;36m[2]{R} Infinite Loop   \033[0;36m[3]{R} Keluar\n")
+                raw = input(f"  \033[1;37mPilih (1/2/3): {R}").strip()
+                if raw == '1':
+                    _handle_choice('single')
+                elif raw == '2':
+                    _handle_choice('infinite')
+                elif raw == '3':
+                    _exit_clean()
+
         except KeyboardInterrupt:
-            print(f"\n\n{Fore.CYAN}◐ {Fore.WHITE}Keluar...{Style.RESET_ALL}")
-            time.sleep(0.5)
-            print(f"{Fore.GREEN}✓ Sampai jumpa! 👋{Style.RESET_ALL}")
-            sys.exit(0)
+            _exit_clean()
         except Exception as e:
-            print(f"\n{Fore.RED}✗ Error: {e}{Style.RESET_ALL}")
-            time.sleep(1)
-            continue
+            R = Style.RESET_ALL
+            print(f"\n  \033[1;31m✗{R}  Error: {e}")
+            time.sleep(1.2)
+
+# ══════════════════════════════════════════════
+# ENTRY POINT
+# ══════════════════════════════════════════════
 
 def main():
     try:
-        is_termux = os.path.exists("/data/data/com.termux/files/usr")
-        
         matrix_loading(3)
         clear_screen()
-        
+
+        is_termux = os.path.exists("/data/data/com.termux/files/usr")
         if is_termux:
-            print(f"{Fore.GREEN}✓ Mode Termux terdeteksi{Style.RESET_ALL}")
-            print(f"{Fore.CYAN}  Gunakan tombol ↑/↓ untuk navigasi{Style.RESET_ALL}")
-            print(f"{Fore.CYAN}  ENTER atau → untuk memilih, Q untuk keluar{Style.RESET_ALL}")
-            print()
-            time.sleep(1)
-        
+            R = Style.RESET_ALL
+            print(f"  \033[1;32m✓{R}  Termux terdeteksi")
+            print(f"  \033[2;37m↑ ↓ navigasi  ·  ENTER pilih  ·  Q keluar{R}\n")
+            time.sleep(0.8)
+
         menu_navigation()
-            
+
     except KeyboardInterrupt:
-        print(f"\n\n{Fore.CYAN}◐ {Fore.WHITE}Keluar...{Style.RESET_ALL}")
-        time.sleep(0.5)
-        print(f"{Fore.GREEN}✓ Sampai jumpa! 👋{Style.RESET_ALL}")
-        sys.exit(0)
+        _exit_clean()
     except Exception as e:
-        print(f"\n{Fore.RED}✗ Error: {e}{Style.RESET_ALL}")
+        R = Style.RESET_ALL
+        print(f"\n  \033[1;31m✗{R}  Fatal: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
