@@ -157,6 +157,12 @@ TARGETS = [
         'number_fmt': fmt_08,
         'success_on': ['success', 'user']
     },
+    {
+        'name': 'Tokopedia',
+        'post_type': 'tokopedia',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
     # JSON Handlers
     {
         'name': 'Pinhome',
