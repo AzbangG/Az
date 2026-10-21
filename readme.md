@@ -1,5 +1,5 @@
 <div align="center">
-  <h1 style="color: #4CAF50;">🚀 Arlen-Spam-OTP</h1>
+  <h1 style="color: #4CAF50;">🚀 Az-Tools</h1>
 </div>
 
 > **⚠️ PERINGATAN: Untuk Tujuan Edukasi dan Pengujian Keamanan Saja ⚠️**
