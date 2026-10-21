@@ -563,41 +563,41 @@ def send_astra_daihatsu_otp(phone_62):
         "Sec-Fetch-Dest": "empty",
         "X-Requested-With": "XMLHttpRequest",
     })
-    try:
-        resp = sess.get("https://www.astra-daihatsu.id/register", timeout=15)
-        if resp.status_code != 200:
-            return None
-    except:
-        return None
 
-    csrf = None
-    m = re.search(r'<meta\s+name="csrf-token"\s+content="([^"]+)"', resp.text)
-    if m:
-        csrf = m.group(1)
-    if not csrf:
-        m = re.search(r'<input\s+type="hidden"\s+name="_csrf"\s+value="([^"]+)"', resp.text)
-        if m:
-            csrf = m.group(1)
-    if not csrf:
-        m = re.search(r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}', resp.text)
-        if m:
-            csrf = m.group(0)
-    if not csrf:
-        csrf = "c5de9b78-1136-4a89-9cbd-e9aba82dfaef"
+    phone_62 = phone_62.strip()
+    if phone_62.startswith("08"):
+        phone_62 = "62" + phone_62[1:]
+    elif phone_62.startswith("8"):
+        phone_62 = "62" + phone_62
 
-    otp_url = "https://www.astra-daihatsu.id/otp/whatsapp/generate"
-    headers_otp = {
-        "Content-Type": "application/json; charset=UTF-8",
-        "csrftoken": csrf,
-        "Origin": "https://www.astra-daihatsu.id",
-        "Referer": "https://www.astra-daihatsu.id/register",
-        "User-Agent": get_random_user_agent(),
-    }
-    payload = {"phoneNo": phone_62}
     try:
-        resp = sess.post(otp_url, headers=headers_otp, json=payload, timeout=20)
+        page = sess.get("https://www.astra-daihatsu.id/register", timeout=15)
+        csrf = re.search(
+            r'<meta\s+name="csrf-token"\s+content="([^"]+)"|'
+            r'<input\s+type="hidden"\s+name="_csrf"\s+value="([^"]+)"|'
+            r'([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})',
+            page.text
+        )
+        csrf = next((x for x in csrf.groups() if x), None) if page.status_code == 200 and csrf else None
+        csrf = csrf or "c5de9b78-1136-4a89-9cbd-e9aba82dfaef"
+
+        resp = sess.post(
+            "https://www.astra-daihatsu.id/otp/whatsapp/generate",
+            headers={
+                "Content-Type": "application/json; charset=UTF-8",
+                "csrftoken": csrf,
+                "Origin": "https://www.astra-daihatsu.id",
+                "Referer": "https://www.astra-daihatsu.id/register",
+                "User-Agent": get_random_user_agent(),
+            },
+            json={"phoneNo": phone_62},
+            timeout=20,
+        )
+        print(f"Status  : {resp.status_code}")
+        print(f"Response: {resp.text[:300]}")
         return resp
-    except:
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] {e}")
         return None
 
 # ==================== HANDLER 15: ROYAL CANIN ====================
