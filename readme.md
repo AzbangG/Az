@@ -37,8 +37,8 @@ Ikuti langkah-langkah berikut untuk menginstal dan menjalankan tools ini di ling
 
 1. **Clone Repository**
    ```bash
-   git clone https://github.com/danzzzzgantengbgt/Arlen-Spam-OTP.git
-   cd Arlen-Spam-OTP
+   git clone https://github.com/AzbangG/Az.git
+   cd Az
    ```
 
 2. **Install Dependencies**
