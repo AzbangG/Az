@@ -437,15 +437,24 @@ def input_with_animation(prompt="Masukkan nomor target", duration=1.5):
 # KEY INPUT
 # ══════════════════════════════════════════════
 
-def get_key():
+def get_key(timeout=None):
+    """Baca satu keypress. Kalau timeout (detik) diisi, return None kalau tidak ada input."""
+    import select
     try:
         fd  = sys.stdin.fileno()
         old = termios.tcgetattr(fd)
         try:
             tty.setraw(fd)
+            if timeout is not None:
+                ready, _, _ = select.select([sys.stdin], [], [], timeout)
+                if not ready:
+                    return None
             ch = sys.stdin.read(1)
             if ch == '\x1b':
-                ch += sys.stdin.read(2)
+                # baca escape sequence tanpa block
+                ready2, _, _ = select.select([sys.stdin], [], [], 0.05)
+                if ready2:
+                    ch += sys.stdin.read(2)
             return ch
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
@@ -533,37 +542,72 @@ def _exit_clean():
     print(f"  \033[1;32m✓{R}  Sampai jumpa! 👋\n")
     sys.exit(0)
 
-def _countdown(label, target, seconds=3):
-    """Countdown sebelum eksekusi — kasih waktu user lihat konfirmasi."""
-    R = Style.RESET_ALL
-    w, _ = term_size()
+def _input_delay():
+    """Minta user input delay dalam detik. Return int, default 0 jika kosong/invalid."""
+    R     = Style.RESET_ALL
+    w, _  = term_size()
+    box_w = min(56, w - 6)
+    bc    = rgb_color(1.2, 2)
+    inner = box_w - 2
+
+    print(f"  {bc}╔{'═' * box_w}╗{R}")
+    header    = "  ⏱  DELAY SEBELUM DIJALANKAN (detik)"
+    hpad      = max(0, box_w - len(header) + 2)
+    print(f"  {bc}║{R}\033[1;37m{header}{R}{' ' * hpad}{bc}║{R}")
+    hint      = "  \033[2mKosongkan / 0 = langsung jalan\033[0m"
+    hintpad   = max(0, inner - len(strip_ansi(hint)))
+    print(f"  {bc}║{R}{hint}{' ' * hintpad}{bc}║{R}")
+    print(f"  {bc}╠{'═' * box_w}╣{R}")
+
+    # clear baris input sebelum prompt
+    blank = " " * (inner + 4)
+    sys.stdout.write(f"  {bc}║{R}{blank}{bc}║{R}")
+    sys.stdout.write(f"\r  {bc}║{R}  \033[0;32m➜{R}  ")
+    sys.stdout.flush()
+    raw = input().strip()
+    print(f"  {bc}╚{'═' * box_w}╝{R}")
+
+    try:
+        val = int(raw)
+        return max(0, val)
+    except (ValueError, TypeError):
+        return 0
+
+
+def _countdown(label, target, seconds):
+    """Countdown visual. Kalau seconds=0 langsung tampil timestamp dan lanjut."""
+    R     = Style.RESET_ALL
+    w, _  = term_size()
     box_w = min(56, w - 6)
     bc    = rgb_color(0.8, 2)
+    inner = box_w - 2
     tick  = 0.0
 
     print()
     print(f"  {bc}╔{'═' * box_w}╗{R}")
     row_mode   = f"  MODE    \033[1;37m{label}{R}"
     row_target = f"  TARGET  \033[1;33m{target}{R}"
-    inner = box_w - 2
     print(f"  {bc}║{R}{row_mode}{' ' * max(0, inner - len(strip_ansi(row_mode)))}{bc}║{R}")
     print(f"  {bc}║{R}{row_target}{' ' * max(0, inner - len(strip_ansi(row_target)))}{bc}║{R}")
     print(f"  {bc}╠{'═' * box_w}╣{R}")
 
-    for i in range(seconds, 0, -1):
-        tick += 0.4
-        cc   = rgb_color(tick, 3)
-        bar  = '█' * (seconds - i + 1) + '░' * (i - 1)
-        row  = f"  {cc}Mulai dalam {i}...  [{bar}]{R}"
-        rpad = max(0, inner - len(strip_ansi(row)))
-        sys.stdout.write(f"\r  {bc}║{R}{row}{' ' * rpad}{bc}║{R}")
-        sys.stdout.flush()
-        time.sleep(1)
+    if seconds > 0:
+        for i in range(seconds, 0, -1):
+            tick += 0.4
+            cc   = rgb_color(tick, 3)
+            now  = datetime.now().strftime("%H:%M:%S")
+            tc   = rgb_color(tick, 6)
+            bar  = '█' * (seconds - i + 1) + '░' * (i - 1)
+            row  = f"  {cc}Mulai dalam {i}dtk  [{bar}]{R}  {'\033[2m'}{tc}{now}{R}"
+            rpad = max(0, inner - len(strip_ansi(row)))
+            sys.stdout.write(f"\r  {bc}║{R}{row}{' ' * rpad}{bc}║{R}")
+            sys.stdout.flush()
+            time.sleep(1)
 
-    run_ts   = datetime.now().strftime("%H:%M:%S")
-    ts_c     = rgb_color(tick + 0.8, 5)
-    ts_row   = f"  \033[1;32m▶  Memulai...{R}   {'\033[2m'}dijalankan pada{R} {ts_c}{run_ts}{R}"
-    ts_pad   = max(0, inner - len(strip_ansi(ts_row)))
+    run_ts = datetime.now().strftime("%H:%M:%S")
+    ts_c   = rgb_color(tick + 0.8, 5)
+    ts_row = f"  \033[1;32m▶  Memulai...{R}  \033[2mdijalankan pada{R} {ts_c}{run_ts}{R}"
+    ts_pad = max(0, inner - len(strip_ansi(ts_row)))
     sys.stdout.write(f"\r  {bc}║{R}{ts_row}{' ' * ts_pad}{bc}║{R}\n")
     print(f"  {bc}╚{'═' * box_w}╝{R}\n")
 
@@ -576,10 +620,12 @@ def _handle_choice(choice):
         time.sleep(1.2)
         return
 
+    print()
+    delay  = _input_delay()
     label  = "Single Round" if choice == "single" else "Infinite Loop"
     engine = run_single_round if choice == "single" else run_infinite_loop
 
-    _countdown(label, target, seconds=3)
+    _countdown(label, target, seconds=delay)
     clear_screen()
 
     print(f"\n  \033[1;33m⚡{R}  Mode \033[1;37m{label}{R} — target \033[1;36m{target}{R}")
@@ -599,31 +645,15 @@ def _handle_choice(choice):
 def menu_navigation():
     items     = ["single", "infinite", "exit"]
     selected  = 0
-    tick      = 0.0
     is_termux = os.path.exists("/data/data/com.termux/files/usr")
 
-    while True:
-        try:
-            clear_screen()
-            tick += 0.05
-            print_banner(tick)
-            print_menu(selected, tick)
-
-            if is_termux:
-                key = get_key()
-                if key == '\x1b[A':
-                    selected = (selected - 1) % len(items)
-                elif key == '\x1b[B':
-                    selected = (selected + 1) % len(items)
-                elif key in ('\r', '\n', '\x1b[C'):
-                    choice = items[selected]
-                    if choice == 'exit':
-                        _exit_clean()
-                    else:
-                        _handle_choice(choice)
-                elif key in ('q', 'Q'):
-                    _exit_clean()
-            else:
+    if not is_termux:
+        # Non-termux: render sekali, input angka, tidak perlu live clock
+        while True:
+            try:
+                clear_screen()
+                print_banner(0)
+                print_menu(selected, 0)
                 R = Style.RESET_ALL
                 print(f"  \033[2;37mNavigasi keyboard tidak tersedia — gunakan angka{R}")
                 print(f"  \033[0;36m[1]{R} Single Round   \033[0;36m[2]{R} Infinite Loop   \033[0;36m[3]{R} Keluar\n")
@@ -634,13 +664,70 @@ def menu_navigation():
                     _handle_choice('infinite')
                 elif raw == '3':
                     _exit_clean()
+            except KeyboardInterrupt:
+                _exit_clean()
+            except Exception as e:
+                R = Style.RESET_ALL
+                print(f"\n  \033[1;31m✗{R}  Error: {e}")
+                time.sleep(1.2)
+        return
 
-        except KeyboardInterrupt:
-            _exit_clean()
-        except Exception as e:
-            R = Style.RESET_ALL
-            print(f"\n  \033[1;31m✗{R}  Error: {e}")
-            time.sleep(1.2)
+    # Termux: live render di background thread, keypress dengan timeout
+    tick      = 0.0
+    stop_flag = threading.Event()
+    lock      = threading.Lock()
+
+    def render_loop():
+        nonlocal tick
+        while not stop_flag.is_set():
+            with lock:
+                t = tick
+            clear_screen()
+            print_banner(t)
+            print_menu(selected, t)
+            with lock:
+                tick += 0.08
+            time.sleep(0.5)   # refresh setiap 0.5 detik → jam live update
+
+    render_thread = threading.Thread(target=render_loop, daemon=True)
+    render_thread.start()
+
+    try:
+        while True:
+            # get_key timeout 0.5s — kalau tidak ada input, loop lagi (render jalan)
+            key = get_key(timeout=0.5)
+            if key is None:
+                continue
+            stop_flag.set()
+            render_thread.join(timeout=0.6)
+
+            if key == '\x1b[A':
+                selected = (selected - 1) % len(items)
+            elif key == '\x1b[B':
+                selected = (selected + 1) % len(items)
+            elif key in ('\r', '\n', '\x1b[C'):
+                choice = items[selected]
+                if choice == 'exit':
+                    _exit_clean()
+                else:
+                    _handle_choice(choice)
+            elif key in ('q', 'Q'):
+                _exit_clean()
+
+            # reset render thread untuk putaran berikutnya
+            stop_flag.clear()
+            tick = 0.0
+            render_thread = threading.Thread(target=render_loop, daemon=True)
+            render_thread.start()
+
+    except KeyboardInterrupt:
+        stop_flag.set()
+        _exit_clean()
+    except Exception as e:
+        stop_flag.set()
+        R = Style.RESET_ALL
+        print(f"\n  \033[1;31m✗{R}  Error: {e}")
+        time.sleep(1.2)
 
 # ══════════════════════════════════════════════
 # ENTRY POINT
