@@ -11,28 +11,29 @@ import random
 import threading
 import shutil
 import re
+from datetime import datetime
 from colorama import Fore, Back, Style, init
-
 from main_engine import run_single_round, run_infinite_loop
 
 init(autoreset=True)
 
-VERSION   = "1.0.0"
+VERSION   = "1.2.0"
 TOOLS_NAME = "AzTools"
 AUTHOR    = "Khaerul"
 TOTAL_API = 24
 
 exec_data = {
-    'target'   : '',
-    'threads'  : 5,
-    'total_api': TOTAL_API,
-    'status'   : 'Initializing...',
-    'progress' : 0,
-    'sent'     : 0,
-    'success'  : 0,
-    'failed'   : 0,
-    'last_log' : 'Starting...',
-    'round'    : 0,
+    'target'    : '',
+    'threads'   : 5,
+    'total_api' : TOTAL_API,
+    'status'    : 'Initializing...',
+    'progress'  : 0,
+    'sent'      : 0,
+    'success'   : 0,
+    'failed'    : 0,
+    'last_log'  : 'Starting...',
+    'round'     : 0,
+    'start_time': '─',
 }
 
 # ══════════════════════════════════════════════
@@ -226,10 +227,17 @@ def print_banner(tick=0):
     meta     = f"  {mc}API{R}{dim}:{R}{ac}{TOTAL_API}{R}   {mc}VER{R}{dim}:{R}{ac}{VERSION}{R}   {mc}DEV{R}{dim}:{R}{ac}{AUTHOR}{R}  "
     meta_pad = max(0, inner - len(strip_ansi(meta)))
 
+    now      = datetime.now().strftime("%H:%M:%S")
+    tc       = rgb_color(tick, 6)
+    clock    = f"  {mc}WAKTU{R}{dim}:{R}{tc}{now}{R}  "
+    clk_pad  = max(0, inner - len(strip_ansi(clock)))
+
     print(f"\n  {bc}╔{'═' * box_w}╗{R}")
     print(f"  {bc}║{R}{title}{' ' * title_pad}{bc}║{R}")
     print(f"  {bc}╠{'═' * box_w}╣{R}")
     print(f"  {bc}║{R}{meta}{' ' * meta_pad}{bc}║{R}")
+    print(f"  {bc}╟{'─' * box_w}╢{R}")
+    print(f"  {bc}║{R}{clock}{' ' * clk_pad}{bc}║{R}")
     print(f"  {bc}╚{'═' * box_w}╝{R}\n")
 
 # ══════════════════════════════════════════════
@@ -300,11 +308,14 @@ def show_execution_table(data, tick=0):
     ac    = rgb_color(tick, 3)
     dim   = '\033[2;37m'
 
-    # header
-    title     = f"  ⚡  {TOOLS_NAME}  —  EKSEKUSI"
-    title_pad = max(0, inner - len(title) + 2)
+    # jam live di header kanan
+    now      = datetime.now().strftime("%H:%M:%S")
+    tc       = rgb_color(tick, 6)
+    title_full = f"  ⚡  {TOOLS_NAME}  —  EKSEKUSI"
+    clock_str  = f"{tc}🕐 {now}{R}"
+    gap        = max(1, inner - len(title_full) - len(strip_ansi(clock_str)))
     print(f"  {bc}╔{'═' * box_w}╗{R}")
-    print(f"  {bc}║{R}{ac}{title}{R}{' ' * title_pad}{bc}║{R}")
+    print(f"  {bc}║{R}{ac}{title_full}{R}{' ' * gap}{clock_str}{bc}║{R}")
     print(f"  {bc}╠{'═' * box_w}╣{R}")
 
     # info
@@ -312,6 +323,8 @@ def show_execution_table(data, tick=0):
     print(_row('THREAD',  str(data.get('threads',   5)),       lc, '\033[0;36m', bc, box_w))
     print(_row('API',     str(data.get('total_api', TOTAL_API)), lc, '\033[0;36m', bc, box_w))
     print(_row('ROUND',   str(data.get('round',     0)),       lc, '\033[0;35m', bc, box_w))
+    start_ts = data.get('start_time', '─')
+    print(_row('MULAI',   start_ts,                            lc, tc,            bc, box_w))
     print(_row('STATUS',  str(data.get('status',    '...')),   lc, ac,           bc, box_w))
 
     # progress bar
@@ -384,23 +397,37 @@ def input_with_animation(prompt="Masukkan nomor target", duration=1.5):
     start = time.time()
     bc    = rgb_color(0.5, 1)
 
+    # lebar konten baris spinner: harus sama setiap frame supaya tidak ada sisa
+    inner     = box_w - 2          # ruang di dalam border kiri-kanan
+    spin_text = "  Siapkan nomor (08xx...)  "
+    # slot = 2 spasi + 1 spinner + 2 spasi + teks + padding sampai inner
+    slot_used = 2 + 1 + 2 + len(spin_text)
+    extra_pad = max(0, inner - slot_used)
+
     print()
     print(f"  {bc}╔{'═' * box_w}╗{R}")
-    header    = f"  📱  {prompt.upper()}"
-    hpad      = max(0, box_w - len(header) + 2)
+    header = f"  📱  {prompt.upper()}"
+    hpad   = max(0, box_w - len(header) + 2)
     print(f"  {bc}║{R}\033[1;37m{header}{R}{' ' * hpad}{bc}║{R}")
     print(f"  {bc}╠{'═' * box_w}╣{R}")
+
+    # cetak baris spinner sekali (cursor ada di sini)
+    sys.stdout.write(f"  {bc}║{R}" + " " * inner + f"{bc}║{R}")
+    sys.stdout.flush()
 
     while time.time() - start < duration:
         tick += 0.1
         sp = spins[int((time.time() - start) * 6) % 4]
-        sys.stdout.write(
-            f"\r  {bc}║{R}  {rgb_color(tick)}{sp}{R}  Siapkan nomor \033[2m(08xx...){R}  {' ' * 8}"
-        )
+        # \r kembali ke awal baris, tulis ulang isi penuh sampai border kanan
+        line = f"  {bc}║{R}  {rgb_color(tick)}{sp}{R}  \033[2mSiapkan nomor (08xx...){R}{' ' * extra_pad}{bc}║{R}"
+        sys.stdout.write(f"\r{line}")
         sys.stdout.flush()
         time.sleep(0.05)
 
-    sys.stdout.write(f"\r  {bc}║{R}  \033[0;32m➜{R}  ")
+    # clear baris spinner lalu tulis prompt input yang bersih
+    blank = " " * (inner + 4)      # 2 spasi kiri + border + inner + border
+    sys.stdout.write(f"\r{blank}\r")
+    sys.stdout.write(f"  {bc}║{R}  \033[0;32m➜{R}  ")
     sys.stdout.flush()
     value = input().strip()
     print(f"  {bc}╚{'═' * box_w}╝{R}")
@@ -453,16 +480,17 @@ def run_with_ui(engine_func, target, threads=5):
     global exec_data
 
     exec_data.update({
-        'target'   : target,
-        'threads'  : threads,
-        'total_api': TOTAL_API,
-        'status'   : 'Running...',
-        'progress' : 0,
-        'sent'     : 0,
-        'success'  : 0,
-        'failed'   : 0,
-        'last_log' : 'Initializing...',
-        'round'    : exec_data.get('round', 0) + 1,
+        'target'    : target,
+        'threads'   : threads,
+        'total_api' : TOTAL_API,
+        'status'    : 'Running...',
+        'progress'  : 0,
+        'sent'      : 0,
+        'success'   : 0,
+        'failed'    : 0,
+        'last_log'  : 'Initializing...',
+        'round'     : exec_data.get('round', 0) + 1,
+        'start_time': datetime.now().strftime("%H:%M:%S"),
     })
 
     stop_flag = threading.Event()
@@ -505,6 +533,40 @@ def _exit_clean():
     print(f"  \033[1;32m✓{R}  Sampai jumpa! 👋\n")
     sys.exit(0)
 
+def _countdown(label, target, seconds=3):
+    """Countdown sebelum eksekusi — kasih waktu user lihat konfirmasi."""
+    R = Style.RESET_ALL
+    w, _ = term_size()
+    box_w = min(56, w - 6)
+    bc    = rgb_color(0.8, 2)
+    tick  = 0.0
+
+    print()
+    print(f"  {bc}╔{'═' * box_w}╗{R}")
+    row_mode   = f"  MODE    \033[1;37m{label}{R}"
+    row_target = f"  TARGET  \033[1;33m{target}{R}"
+    inner = box_w - 2
+    print(f"  {bc}║{R}{row_mode}{' ' * max(0, inner - len(strip_ansi(row_mode)))}{bc}║{R}")
+    print(f"  {bc}║{R}{row_target}{' ' * max(0, inner - len(strip_ansi(row_target)))}{bc}║{R}")
+    print(f"  {bc}╠{'═' * box_w}╣{R}")
+
+    for i in range(seconds, 0, -1):
+        tick += 0.4
+        cc   = rgb_color(tick, 3)
+        bar  = '█' * (seconds - i + 1) + '░' * (i - 1)
+        row  = f"  {cc}Mulai dalam {i}...  [{bar}]{R}"
+        rpad = max(0, inner - len(strip_ansi(row)))
+        sys.stdout.write(f"\r  {bc}║{R}{row}{' ' * rpad}{bc}║{R}")
+        sys.stdout.flush()
+        time.sleep(1)
+
+    run_ts   = datetime.now().strftime("%H:%M:%S")
+    ts_c     = rgb_color(tick + 0.8, 5)
+    ts_row   = f"  \033[1;32m▶  Memulai...{R}   {'\033[2m'}dijalankan pada{R} {ts_c}{run_ts}{R}"
+    ts_pad   = max(0, inner - len(strip_ansi(ts_row)))
+    sys.stdout.write(f"\r  {bc}║{R}{ts_row}{' ' * ts_pad}{bc}║{R}\n")
+    print(f"  {bc}╚{'═' * box_w}╝{R}\n")
+
 def _handle_choice(choice):
     R = Style.RESET_ALL
     clear_screen()
@@ -517,14 +579,13 @@ def _handle_choice(choice):
     label  = "Single Round" if choice == "single" else "Infinite Loop"
     engine = run_single_round if choice == "single" else run_infinite_loop
 
-    print_loading_animation(f"Memulai {label}", 1)
+    _countdown(label, target, seconds=3)
     clear_screen()
 
     print(f"\n  \033[1;33m⚡{R}  Mode \033[1;37m{label}{R} — target \033[1;36m{target}{R}")
     if choice == "infinite":
         print(f"  \033[2;33mMode ini berjalan terus hingga CTRL+C{R}")
     print(f"  \033[2;37mTekan CTRL+C untuk menghentikan{R}\n")
-    time.sleep(0.6)
 
     try:
         run_with_ui(engine, target, threads=5)
