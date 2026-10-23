@@ -79,12 +79,15 @@ def cprint(text, indent=1):
     """Cetak teks rata kiri dengan indent tetap."""
     print(' ' * indent + text)
 
-def cprint_center(text):
-    """Cetak teks rata tengah terminal."""
-    w     = ui_w()
-    clean = strip_ansi(text)
-    pad   = max(0, (w - len(clean)) // 2)
-    print(' ' * pad + text)
+def cprint_center(plain, colored=None):
+    """
+    Cetak teks rata tengah.
+    plain  = teks tanpa ANSI (untuk ukur lebar)
+    colored = teks dengan ANSI (yang dicetak), default sama dengan plain
+    """
+    w   = ui_w()
+    pad = max(0, (w - len(plain)) // 2)
+    print(' ' * pad + (colored if colored is not None else plain))
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -236,19 +239,28 @@ def print_banner(tick=0):
     R   = Style.RESET_ALL
     dim = '\033[2m'
     now = datetime.now().strftime("%H:%M:%S")
-    c2  = '\033[0;33m'   # kuning — label
-    c3  = '\033[1;32m'   # hijau — value
-    c4  = '\033[1;35m'   # magenta — jam
+    c2  = '\033[0;33m'
+    c3  = '\033[1;32m'
+    c4  = '\033[1;35m'
 
     print()
-    cprint_center(gradient_text(f"{TOOLS_NAME}  —  OTP TOOL", tick))
+
+    # Judul — ukur dari plain, cetak gradient
+    title_plain   = f"{TOOLS_NAME}  \u2014  OTP TOOL"
+    cprint_center(title_plain, gradient_text(title_plain, tick))
     print()
-    cprint_center(
-        f"{c2}API{R}{dim}:{R}{c3}{TOTAL_API}{R}  "
-        f"{c2}VER{R}{dim}:{R}{c3}{VERSION}{R}  "
-        f"{c2}DEV{R}{dim}:{R}{c3}{AUTHOR}{R}"
-    )
-    cprint_center(f"{c2}JAM{R}{dim}:{R}{c4}{now}{R}")
+
+    # Info row — plain dulu untuk ukur, colored untuk cetak
+    info_plain    = f"API:{TOTAL_API}  VER:{VERSION}  DEV:{AUTHOR}"
+    info_colored  = (f"{c2}API{R}{dim}:{R}{c3}{TOTAL_API}{R}  "
+                     f"{c2}VER{R}{dim}:{R}{c3}{VERSION}{R}  "
+                     f"{c2}DEV{R}{dim}:{R}{c3}{AUTHOR}{R}")
+    cprint_center(info_plain, info_colored)
+
+    # Jam — plain untuk ukur, colored untuk cetak
+    clock_plain   = f"JAM:{now}"
+    clock_colored = f"{c2}JAM{R}{dim}:{R}{c4}{now}{R}"
+    cprint_center(clock_plain, clock_colored)
     print()
 
 # Warna background per item saat diselect: hijau, biru, merah
@@ -256,28 +268,35 @@ _SEL_BG = ['\033[42;97m', '\033[44;97m', '\033[41;97m']
 
 def print_menu(selected=0, tick=0):
     R   = Style.RESET_ALL
-    hc  = '\033[1;35m'   # magenta — header
-    nc  = '\033[0;36m'   # cyan — normal item
-    dc  = '\033[2;37m'   # dim — deskripsi
-    hkc = '\033[1;33m'   # kuning — hotkey hint
+    hc  = '\033[1;35m'
+    nc  = '\033[0;36m'
+    dc  = '\033[2;37m'
+    hkc = '\033[1;33m'
 
     labels = ['Single Round', 'Infinite Loop', 'Keluar']
     descs  = ['Sekali kirim semua API', 'Kirim nonstop berulang', 'Tutup aplikasi']
 
-    cprint_center(f"{hc}MENU UTAMA{R}")
+    # Header
+    cprint_center("MENU UTAMA", f"{hc}MENU UTAMA{R}")
     print()
 
     for i, (label, desc) in enumerate(zip(labels, descs)):
+        # Plain text untuk ukur pad — TIDAK ada ANSI code apapun
+        lp = f"  {label}  "
+        dp = f"  {desc}  "
         if i == selected:
             bg = _SEL_BG[i]
-            cprint_center(f"{bg}  {label}  {R}")
-            cprint_center(f"{bg}  {desc}  {R}")
+            cprint_center(lp, f"{bg}{lp}{R}")
+            cprint_center(dp, f"{bg}{dp}{R}")
         else:
-            cprint_center(f"{nc}{label}{R}")
-            cprint_center(f"{dc}{desc}{R}")
+            cprint_center(label, f"{nc}{label}{R}")
+            cprint_center(desc,  f"{dc}{desc}{R}")
         print()
 
-    cprint_center(f"{hkc}↑↓{R} Nav  {hkc}ENTER{R} Pilih  {hkc}Q{R} Quit")
+    # Hotkey hint — plain tanpa warna untuk ukur
+    hint_p = "\u2191\u2193 Nav  ENTER Pilih  Q Quit"
+    hint_c = f"{hkc}\u2191\u2193{R} Nav  {hkc}ENTER{R} Pilih  {hkc}Q{R} Quit"
+    cprint_center(hint_p, hint_c)
     print()
 
 # ══════════════════════════════════════════════
