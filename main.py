@@ -15,7 +15,7 @@ from main_engine import run_single_round, run_infinite_loop
 
 init(autoreset=True)
 
-VERSION   = "1.3.0"
+VERSION   = "1.2.0"
 TOOLS_NAME = "AzTools"
 AUTHOR    = "Khaerul"
 TOTAL_API = 24
@@ -613,34 +613,55 @@ def menu_navigation():
                 time.sleep(1.2)
         return
 
-    # Termux: live render di background thread, keypress dengan timeout
-    tick      = 0.0
+    # Termux: menu digambar sekali, clock diupdate in-place tiap 1 detik
+    # Baris clock ada di baris ke-5 setelah clear_screen (print_banner layout)
+    CLOCK_ROW = 5
+
+    def draw_menu():
+        """Full render sekali — dipanggil saat start dan saat navigasi."""
+        clear_screen()
+        print_banner(0)
+        print_menu(selected, 0)
+
+    def clock_loop(stop_ev):
+        """Hanya overwrite baris JAM, gak menyentuh layout lain."""
+        R2  = Style.RESET_ALL
+        dim = '\033[2m'
+        c2  = '\033[0;33m'
+        c4  = '\033[1;35m'
+        while not stop_ev.is_set():
+            now           = datetime.now().strftime("%H:%M:%S")
+            w             = ui_w()
+            clock_plain   = f"JAM:{now}"
+            clock_colored = f"{c2}JAM{R2}{dim}:{R2}{c4}{now}{R2}"
+            pad           = max(0, (w - len(clock_plain)) // 2)
+            # Pindah ke baris clock, clear baris, tulis jam baru
+            sys.stdout.write(f'\033[{CLOCK_ROW};1H\033[2K')
+            sys.stdout.write(' ' * pad + clock_colored)
+            sys.stdout.flush()
+            stop_ev.wait(1.0)   # 1 detik atau langsung berhenti kalau di-set
+
     stop_flag = threading.Event()
-    lock      = threading.Lock()
 
-    def render_loop():
-        nonlocal tick
-        while not stop_flag.is_set():
-            with lock:
-                t = tick
-            clear_screen()
-            print_banner(t)
-            print_menu(selected, t)
-            with lock:
-                tick += 0.08
-            time.sleep(0.5)   # refresh setiap 0.5 detik → jam live update
+    def start_clock():
+        stop_flag.clear()
+        t = threading.Thread(target=clock_loop, args=(stop_flag,), daemon=True)
+        t.start()
+        return t
 
-    render_thread = threading.Thread(target=render_loop, daemon=True)
-    render_thread.start()
+    draw_menu()
+    clock_thread = start_clock()
 
     try:
         while True:
-            # get_key timeout 0.5s — kalau tidak ada input, loop lagi (render jalan)
-            key = get_key(timeout=0.5)
+            # Block sampai ada keypress — gak pakai polling timeout
+            key = get_key(timeout=None)
             if key is None:
                 continue
+
+            # Stop clock dulu sebelum redraw
             stop_flag.set()
-            render_thread.join(timeout=0.6)
+            clock_thread.join(timeout=1.1)
 
             if key == '\x1b[A':
                 selected = (selected - 1) % len(items)
@@ -655,11 +676,9 @@ def menu_navigation():
             elif key in ('q', 'Q'):
                 _exit_clean()
 
-            # reset render thread untuk putaran berikutnya
-            stop_flag.clear()
-            tick = 0.0
-            render_thread = threading.Thread(target=render_loop, daemon=True)
-            render_thread.start()
+            # Redraw sekali, lanjut clock lagi
+            draw_menu()
+            clock_thread = start_clock()
 
     except KeyboardInterrupt:
         stop_flag.set()
