@@ -79,6 +79,13 @@ def cprint(text, indent=1):
     """Cetak teks rata kiri dengan indent tetap."""
     print(' ' * indent + text)
 
+def cprint_center(text):
+    """Cetak teks rata tengah terminal."""
+    w     = ui_w()
+    clean = strip_ansi(text)
+    pad   = max(0, (w - len(clean)) // 2)
+    print(' ' * pad + text)
+
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -229,53 +236,48 @@ def print_banner(tick=0):
     R   = Style.RESET_ALL
     dim = '\033[2m'
     now = datetime.now().strftime("%H:%M:%S")
-    c1  = '\033[1;36m'   # cyan bright — judul
     c2  = '\033[0;33m'   # kuning — label
     c3  = '\033[1;32m'   # hijau — value
     c4  = '\033[1;35m'   # magenta — jam
 
-    div(tick, '═')
-    cprint(f"{c1}AzTools{R}  {dim}—{R}  {c1}OTP TOOL{R}")
-    div(tick)
-    cprint(f"{c2}API{R}{dim}:{R}{c3}{TOTAL_API}{R}  {c2}VER{R}{dim}:{R}{c3}{VERSION}{R}")
-    cprint(f"{c2}DEV{R}{dim}:{R}{c3}{AUTHOR}{R}  {c2}JAM{R}{dim}:{R}{c4}{now}{R}")
-    div(tick, '═')
+    print()
+    cprint_center(gradient_text(f"{TOOLS_NAME}  —  OTP TOOL", tick))
+    print()
+    cprint_center(
+        f"{c2}API{R}{dim}:{R}{c3}{TOTAL_API}{R}  "
+        f"{c2}VER{R}{dim}:{R}{c3}{VERSION}{R}  "
+        f"{c2}DEV{R}{dim}:{R}{c3}{AUTHOR}{R}"
+    )
+    cprint_center(f"{c2}JAM{R}{dim}:{R}{c4}{now}{R}")
     print()
 
-_MENU_ITEMS = [
-    ('◈  Single Round',  'Sekali kirim ke semua API'),
-    ('⟳  Infinite Loop', 'Kirim berulang nonstop   '),
-    ('✕  Keluar',        'Tutup aplikasi           '),
-]
+# Warna background per item saat diselect: hijau, biru, merah
+_SEL_BG = ['\033[42;97m', '\033[44;97m', '\033[41;97m']
 
 def print_menu(selected=0, tick=0):
-    R    = Style.RESET_ALL
-    dim  = '\033[2m'
-    hc   = '\033[1;35m'   # magenta — header
-    sc   = '\033[1;32m'   # hijau — selected
-    nc   = '\033[0;36m'   # cyan — normal item
-    dc   = '\033[2;37m'   # dim — deskripsi
-    hkc  = '\033[1;33m'   # kuning — hotkey hint
-
-    cprint(f"{hc}◆ MENU UTAMA{R}")
-    div(tick)
+    R   = Style.RESET_ALL
+    hc  = '\033[1;35m'   # magenta — header
+    nc  = '\033[0;36m'   # cyan — normal item
+    dc  = '\033[2;37m'   # dim — deskripsi
+    hkc = '\033[1;33m'   # kuning — hotkey hint
 
     labels = ['Single Round', 'Infinite Loop', 'Keluar']
     descs  = ['Sekali kirim semua API', 'Kirim nonstop berulang', 'Tutup aplikasi']
-    icons  = ['◈', '⟳', '✕']
 
-    for i, (label, desc, icon) in enumerate(zip(labels, descs, icons)):
+    cprint_center(f"{hc}MENU UTAMA{R}")
+    print()
+
+    for i, (label, desc) in enumerate(zip(labels, descs)):
         if i == selected:
-            print(f"\033[42;30m ▶ {icon} {label} {R}")
-            print(f"\033[42;30m   {desc} {R}")
+            bg = _SEL_BG[i]
+            cprint_center(f"{bg}  {label}  {R}")
+            cprint_center(f"{bg}  {desc}  {R}")
         else:
-            cprint(f"{nc}· {icon} {label}{R}")
-            cprint(f"{dc}{desc}{R}")
-        if i < len(labels) - 1:
-            div(tick)
+            cprint_center(f"{nc}{label}{R}")
+            cprint_center(f"{dc}{desc}{R}")
+        print()
 
-    div(tick)
-    cprint(f"{hkc}↑↓{R} Nav  {hkc}ENTER{R} Pilih  {hkc}Q{R} Quit")
+    cprint_center(f"{hkc}↑↓{R} Nav  {hkc}ENTER{R} Pilih  {hkc}Q{R} Quit")
     print()
 
 # ══════════════════════════════════════════════
