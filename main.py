@@ -15,7 +15,7 @@ from main_engine import run_single_round, run_infinite_loop
 
 init(autoreset=True)
 
-VERSION   = "1.2.0"
+VERSION   = "1.3.0"
 TOOLS_NAME = "AzTools"
 AUTHOR    = "Khaerul"
 TOTAL_API = 24
