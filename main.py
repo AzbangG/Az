@@ -66,12 +66,20 @@ def term_size():
     except Exception:
         return 80, 24
 
-def ui_box_w():
-    """Lebar box yang aman: muat di semua lebar terminal termasuk Termux sempit."""
+def ui_w():
+    """Lebar garis divider — tidak termasuk border kanan."""
     w, _ = term_size()
-    # indent 1 spasi kiri + border kiri + konten + border kanan = box_w + 3
-    # sisakan 2 char margin kanan supaya tidak wrap
-    return max(30, min(56, w - 5))
+    return max(28, min(38, w - 2))
+
+def div(tick=0, char='─'):
+    """Cetak garis divider penuh."""
+    w = ui_w()
+    c = rgb_color(tick, 1)
+    print(f"{c}{char * w}\033[0m")
+
+def row(content):
+    """Cetak baris konten rata kiri, tidak ada border kanan."""
+    print(content)
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -219,36 +227,22 @@ def matrix_loading(duration=3):
 # BANNER
 # ══════════════════════════════════════════════
 
-def _box_row(content, bc, box_w):
-    """Cetak satu baris dalam box, padding otomatis sampai border kanan."""
-    R   = Style.RESET_ALL
-    pad = max(0, box_w - len(strip_ansi(content)))
-    print(f" {bc}║{R}{content}{' ' * pad}{bc}║{R}")
-
 def print_banner(tick=0):
-    box_w = ui_box_w()
-    inner = box_w        # konten di dalam ║ kiri dan ║ kanan, tanpa leading space ekstra
-    R     = Style.RESET_ALL
-    bc    = rgb_color(tick, 1)
-    ac    = rgb_color(tick, 4)
-    mc    = rgb_color(tick, 2)
-    dim   = '\033[2m'
-    tc    = rgb_color(tick, 6)
+    R  = Style.RESET_ALL
+    ac = rgb_color(tick, 4)
+    mc = rgb_color(tick, 2)
+    tc = rgb_color(tick, 6)
+    dim = '\033[2m'
+    now = datetime.now().strftime("%H:%M:%S")
 
-    title_raw = f" {TOOLS_NAME}  \u2014  OTP TOOL "
-    title     = gradient_text(title_raw, tick, 0)
-    title_pad = max(0, inner - len(title_raw))
-
-    now   = datetime.now().strftime("%H:%M:%S")
-    meta1 = f" {mc}API{R}{dim}:{R}{ac}{TOTAL_API}{R}  {mc}VER{R}{dim}:{R}{ac}{VERSION}{R}"
-    meta2 = f" {mc}DEV{R}{dim}:{R}{ac}{AUTHOR}{R}  {mc}JAM{R}{dim}:{R}{tc}{now}{R}"
-
-    print(f"\n {bc}╔{'═' * box_w}╗{R}")
-    _box_row(title + ' ' * title_pad, bc, box_w)
-    print(f" {bc}╠{'═' * box_w}╣{R}")
-    _box_row(meta1 + ' ' * max(0, inner - len(strip_ansi(meta1))), bc, box_w)
-    _box_row(meta2 + ' ' * max(0, inner - len(strip_ansi(meta2))), bc, box_w)
-    print(f" {bc}╚{'═' * box_w}╝{R}\n")
+    print()
+    div(tick, '═')
+    print(gradient_text(f" {TOOLS_NAME}  —  OTP TOOL", tick, 0) + R)
+    div(tick)
+    print(f" {mc}API{R}{dim}:{R}{ac}{TOTAL_API}{R}  {mc}VER{R}{dim}:{R}{ac}{VERSION}{R}")
+    print(f" {mc}DEV{R}{dim}:{R}{ac}{AUTHOR}{R}  {mc}JAM{R}{dim}:{R}{tc}{now}{R}")
+    div(tick, '═')
+    print()
 
 # ══════════════════════════════════════════════
 # MENU
@@ -261,130 +255,78 @@ _MENU_ITEMS = [
 ]
 
 def print_menu(selected=0, tick=0):
-    box_w = ui_box_w()
-    inner = box_w
     R     = Style.RESET_ALL
-    bc    = rgb_color(tick, 1)
     hc    = rgb_color(tick, 3)
+    hintc = rgb_color(tick, 5)
 
-    header     = f" ◆  MENU UTAMA"
-    header_pad = max(0, inner - len(header))
-    print(f" {bc}╔{'═' * box_w}╗{R}")
-    print(f" {bc}║{R}{hc}{header}{R}{' ' * header_pad}{bc}║{R}")
-    print(f" {bc}╠{'═' * box_w}╣{R}")
+    print(f" {hc}◆ MENU UTAMA{R}")
+    div(tick)
 
     for i, (label, desc) in enumerate(_MENU_ITEMS):
         if i == selected:
-            sc       = rgb_color(tick, i * 1.5)
-            row1_raw = f" ▶  {label}"
-            row1     = f" {sc}▶  {label}{R}"
-            row1_pad = max(0, inner - len(row1_raw))
-            row2_raw = f"    {desc}"
-            row2_pad = max(0, inner - len(row2_raw))
-            print(f" {bc}║{R}{bg_rgb(0, 28, 0)}{row1}{' ' * row1_pad}\033[0m{bc}║{R}")
-            print(f" {bc}║{R}{bg_rgb(0, 28, 0)}\033[2;37m{row2_raw}{R}{' ' * row2_pad}\033[0m{bc}║{R}")
+            sc = rgb_color(tick, i * 1.5 + 1)
+            print(f"{bg_rgb(0, 35, 0)} {sc}▶ {label}{R}")
+            print(f"{bg_rgb(0, 35, 0)}   \033[2;37m{desc}{R}")
         else:
-            gl       = gradient_text(f" ·  {label}", tick, i * 2.0)
-            row1_raw = f" ·  {label}"
-            row1_pad = max(0, inner - len(row1_raw))
-            row2_raw = f"    {desc}"
-            row2_pad = max(0, inner - len(row2_raw))
-            print(f" {bc}║{R}{gl}{' ' * row1_pad}{bc}║{R}")
-            print(f" {bc}║{R}\033[2;37m{row2_raw}{R}{' ' * row2_pad}{bc}║{R}")
-
+            gl = gradient_text(f" · {label}", tick, i * 2.0)
+            print(f"{gl}{R}")
+            print(f"   \033[2;37m{desc}{R}")
         if i < len(_MENU_ITEMS) - 1:
-            print(f" {bc}╟{'─' * box_w}╢{R}")
+            div(tick)
 
-    print(f" {bc}╠{'═' * box_w}╣{R}")
-    hintc   = rgb_color(tick, 5)
-    hint    = f" {hintc}↑↓{R} Nav  {hintc}ENTER{R} Pilih  {hintc}Q{R} Quit"
-    hintpad = max(0, inner - len(strip_ansi(hint)))
-    print(f" {bc}║{R}{hint}{' ' * hintpad}{bc}║{R}")
-    print(f" {bc}╚{'═' * box_w}╝{R}\n")
+    div(tick)
+    print(f" {hintc}↑↓{R} Nav  {hintc}ENTER{R} Pilih  {hintc}Q{R} Quit\n")
 
 # ══════════════════════════════════════════════
 # EXECUTION TABLE
 # ══════════════════════════════════════════════
 
-def _row(label, value, lc, vc, bc, box_w):
-    R       = Style.RESET_ALL
-    content = f" {lc}{label:<8}{R} {vc}{str(value)}{R}"
-    pad     = max(0, box_w - len(strip_ansi(content)))
-    return f" {bc}║{R}{content}{' ' * pad}{bc}║{R}"
-
 def show_execution_table(data, tick=0):
     clear_screen()
-    box_w = ui_box_w()
-    inner = box_w
-    R     = Style.RESET_ALL
-    bc    = rgb_color(tick, 1)
-    lc    = '\033[0;32m'
-    ac    = rgb_color(tick, 3)
-    tc    = rgb_color(tick, 6)
-    dim   = '\033[2;37m'
+    R   = Style.RESET_ALL
+    lc  = '\033[0;32m'
+    ac  = rgb_color(tick, 3)
+    tc  = rgb_color(tick, 6)
+    dim = '\033[2;37m'
 
-    # header + jam
-    now       = datetime.now().strftime("%H:%M:%S")
-    title_raw = f" ⚡ {TOOLS_NAME} — EKSEKUSI"
-    clk_raw   = f" {now}"
-    gap       = max(1, inner - len(title_raw) - len(clk_raw))
-    print(f" {bc}╔{'═' * box_w}╗{R}")
-    print(f" {bc}║{R}{ac}{title_raw}{R}{' ' * gap}{tc}{clk_raw}{R}{bc}║{R}")
-    print(f" {bc}╠{'═' * box_w}╣{R}")
+    now = datetime.now().strftime("%H:%M:%S")
+    div(tick, '═')
+    print(f" {ac}⚡ {TOOLS_NAME} — EKSEKUSI{R}  {tc}{now}{R}")
+    div(tick)
 
-    # info rows
-    target_val = str(data.get('target', 'N/A'))
-    # truncate target kalau terlalu panjang
-    max_val = inner - 12
-    if len(target_val) > max_val:
-        target_val = target_val[:max_val - 1] + '…'
+    target_val = str(data.get('target', 'N/A'))[:28]
+    print(f" {lc}TARGET{R} \033[1;33m{target_val}{R}")
+    print(f" {lc}API{R}    \033[0;36m{data.get('total_api', TOTAL_API)}{R}  "
+          f"{lc}ROUND{R} \033[0;35m{data.get('round', 0)}{R}")
+    print(f" {lc}MULAI{R}  {tc}{data.get('start_time', '─')}{R}")
+    print(f" {lc}STATUS{R} {ac}{data.get('status', '...')}{R}")
 
-    print(_row('TARGET',  target_val,                             lc, '\033[1;33m', bc, box_w))
-    print(_row('API',     str(data.get('total_api', TOTAL_API)),  lc, '\033[0;36m', bc, box_w))
-    print(_row('ROUND',   str(data.get('round', 0)),              lc, '\033[0;35m', bc, box_w))
-    print(_row('MULAI',   data.get('start_time', '─'),            lc, tc,           bc, box_w))
-    print(_row('STATUS',  str(data.get('status', '...')),         lc, ac,           bc, box_w))
-
-    # progress bar
-    print(f" {bc}╠{'═' * box_w}╣{R}")
+    div(tick)
     prog   = max(0, min(100, data.get('progress', 0)))
-    blen   = max(8, inner - 10)
+    blen   = max(16, ui_w() - 8)
     filled = int(blen * prog / 100)
     bar    = '█' * filled + '░' * (blen - filled)
-    pct    = f"{prog:>3}%"
-    brow   = f" {lc}PROG{R} {rgb_color(tick, 4)}[{bar}]{R} {pct}"
-    bpad   = max(0, inner - len(strip_ansi(brow)))
-    print(f" {bc}║{R}{brow}{' ' * bpad}{bc}║{R}")
+    print(f" {rgb_color(tick, 4)}[{bar}] {prog}%{R}")
 
-    # stats — dua baris supaya muat di layar sempit
-    print(f" {bc}╠{'═' * box_w}╣{R}")
+    div(tick)
     sent    = data.get('sent',    0)
     success = data.get('success', 0)
     failed  = data.get('failed',  0)
     rate    = f"{int(success / max(1, sent) * 100)}%" if sent else "─"
-    s1      = f" {lc}SENT{R} \033[1;33m{sent}{R}   {lc}OK{R} \033[1;32m{success}{R}"
-    s2      = f" {lc}FAIL{R} \033[1;31m{failed}{R}   {lc}RATE{R} \033[1;36m{rate}{R}"
-    print(f" {bc}║{R}{s1}{' ' * max(0, inner - len(strip_ansi(s1)))}{bc}║{R}")
-    print(f" {bc}║{R}{s2}{' ' * max(0, inner - len(strip_ansi(s2)))}{bc}║{R}")
+    print(f" {lc}SENT{R} \033[1;33m{sent}{R}  {lc}OK{R} \033[1;32m{success}{R}  "
+          f"{lc}FAIL{R} \033[1;31m{failed}{R}  {lc}RATE{R} \033[1;36m{rate}{R}")
 
-    # last log
-    print(f" {bc}╠{'═' * box_w}╣{R}")
+    div(tick)
     raw_log  = str(data.get('last_log', ''))
-    log_text = raw_log[:inner - 6]
+    log_text = raw_log[:ui_w() - 5]
     ll       = raw_log.lower()
-    if 'success' in ll or 'ok' in ll:
-        lcolor = '\033[1;32m'
-    elif 'fail' in ll or 'error' in ll or 'timeout' in ll:
-        lcolor = '\033[1;31m'
-    elif 'limit' in ll or 'block' in ll or 'rate' in ll:
-        lcolor = '\033[1;33m'
-    else:
-        lcolor = '\033[0;37m'
-    logrow = f" {lc}LOG{R} {lcolor}{log_text}{R}"
-    lpad   = max(0, inner - len(strip_ansi(logrow)))
-    print(f" {bc}║{R}{logrow}{' ' * lpad}{bc}║{R}")
-    print(f" {bc}╚{'═' * box_w}╝{R}")
-    print(f"\n {dim}CTRL+C untuk berhenti{R}")
+    if 'success' in ll or 'ok' in ll:      lcolor = '\033[1;32m'
+    elif 'fail' in ll or 'error' in ll:    lcolor = '\033[1;31m'
+    elif 'limit' in ll or 'block' in ll:   lcolor = '\033[1;33m'
+    else:                                   lcolor = '\033[0;37m'
+    print(f" {lc}LOG{R} {lcolor}{log_text}{R}")
+    div(tick, '═')
+    print(f" {dim}CTRL+C berhenti{R}")
 
 # ══════════════════════════════════════════════
 # INPUT & ANIMATION HELPERS
@@ -403,44 +345,32 @@ def print_loading_animation(message="Processing", duration=1):
     print('\r' + ' ' * 60 + '\r', end='')
 
 def input_with_animation(prompt="Masukkan nomor target", duration=1.5):
-    box_w = ui_box_w()
-    inner = box_w
     R     = Style.RESET_ALL
     spins = ['◐', '◓', '◑', '◒']
     tick  = 0.0
     start = time.time()
-    bc    = rgb_color(0.5, 1)
-
-    spin_text = " Siapkan nomor (08xx...)"
-    # panjang tetap: 1 spasi + spinner + spin_text + padding
-    fixed_len = 1 + 1 + len(spin_text)
-    extra_pad = max(0, inner - fixed_len)
+    spin_text = "Siapkan nomor (08xx...)"
 
     print()
-    print(f" {bc}╔{'═' * box_w}╗{R}")
-    header_raw = f" {prompt.upper()}"
-    header_pad = max(0, inner - len(header_raw))
-    print(f" {bc}║{R}\033[1;37m{header_raw}{R}{' ' * header_pad}{bc}║{R}")
-    print(f" {bc}╠{'═' * box_w}╣{R}")
+    div(0.5, '─')
+    print(f" \033[1;37m{prompt.upper()}{R}")
+    div(0.5, '─')
 
-    # baris spinner kosong dulu
-    sys.stdout.write(f" {bc}║{R}{' ' * inner}{bc}║{R}")
+    sys.stdout.write(f" ◌ \033[2m{spin_text}{R}  ")
     sys.stdout.flush()
 
     while time.time() - start < duration:
         tick += 0.1
-        sp   = spins[int((time.time() - start) * 6) % 4]
-        line = f" {bc}║{R} {rgb_color(tick)}{sp}{R}\033[2m{spin_text}{R}{' ' * extra_pad}{bc}║{R}"
-        sys.stdout.write(f"\r{line}")
+        sp = spins[int((time.time() - start) * 6) % 4]
+        sys.stdout.write(f"\r {rgb_color(tick)}{sp}{R} \033[2m{spin_text}{R}  ")
         sys.stdout.flush()
         time.sleep(0.05)
 
-    # clear baris lalu tampil prompt
-    sys.stdout.write(f"\r {bc}║{R}{' ' * inner}{bc}║{R}\r")
-    sys.stdout.write(f" {bc}║{R} \033[0;32m➜{R} ")
+    sys.stdout.write(f"\r{' ' * (len(spin_text) + 6)}\r")
+    sys.stdout.write(f" \033[0;32m➜{R} ")
     sys.stdout.flush()
     value = input().strip()
-    print(f" {bc}╚{'═' * box_w}╝{R}")
+    div(0.5)
     return value
 
 # ══════════════════════════════════════════════
@@ -553,25 +483,15 @@ def _exit_clean():
     sys.exit(0)
 
 def _input_delay():
-    """Minta user input delay dalam detik. Return int, default 0 jika kosong/invalid."""
-    box_w = ui_box_w()
-    inner = box_w
-    R     = Style.RESET_ALL
-    bc    = rgb_color(1.2, 2)
-
-    print(f" {bc}╔{'═' * box_w}╗{R}")
-    h1_raw = " DELAY SEBELUM DIJALANKAN (detik)"
-    h2_raw = " \033[2mKosongkan / 0 = langsung jalan\033[0m"
-    print(f" {bc}║{R}\033[1;37m{h1_raw}{R}{' ' * max(0, inner - len(h1_raw))}{bc}║{R}")
-    print(f" {bc}║{R}{h2_raw}{' ' * max(0, inner - len(strip_ansi(h2_raw)))}{bc}║{R}")
-    print(f" {bc}╠{'═' * box_w}╣{R}")
-
-    sys.stdout.write(f" {bc}║{R}{' ' * inner}{bc}║{R}\r")
-    sys.stdout.write(f" {bc}║{R} \033[0;32m➜{R} ")
+    R = Style.RESET_ALL
+    div(1.2, '─')
+    print(f" \033[1;37mDELAY SEBELUM JALAN (detik){R}")
+    print(f" \033[2m0 atau kosong = langsung{R}")
+    div(1.2, '─')
+    sys.stdout.write(f" \033[0;32m➜{R} ")
     sys.stdout.flush()
     raw = input().strip()
-    print(f" {bc}╚{'═' * box_w}╝{R}")
-
+    div(1.2)
     try:
         return max(0, int(raw))
     except (ValueError, TypeError):
@@ -579,39 +499,32 @@ def _input_delay():
 
 
 def _countdown(label, target, seconds):
-    """Countdown visual. Kalau seconds=0 langsung tampil timestamp dan lanjut."""
-    box_w = ui_box_w()
-    inner = box_w
-    R     = Style.RESET_ALL
-    bc    = rgb_color(0.8, 2)
-    tick  = 0.0
-
+    R    = Style.RESET_ALL
+    tick = 0.0
     print()
-    print(f" {bc}╔{'═' * box_w}╗{R}")
-    rm  = f" MODE   \033[1;37m{label}{R}"
-    rt  = f" TARGET \033[1;33m{target}{R}"
-    print(f" {bc}║{R}{rm}{' ' * max(0, inner - len(strip_ansi(rm)))}{bc}║{R}")
-    print(f" {bc}║{R}{rt}{' ' * max(0, inner - len(strip_ansi(rt)))}{bc}║{R}")
-    print(f" {bc}╠{'═' * box_w}╣{R}")
+    div(0.8, '─')
+    print(f" \033[1;37m{label}{R}  →  \033[1;33m{target}{R}")
+    div(0.8, '─')
 
     if seconds > 0:
-        bar_max = max(4, inner - 20)
+        blen = max(8, ui_w() - 16)
         for i in range(seconds, 0, -1):
             tick += 0.4
             cc  = rgb_color(tick, 3)
             tc  = rgb_color(tick, 6)
             now = datetime.now().strftime("%H:%M:%S")
-            bar = '█' * min(bar_max, seconds - i + 1) + '░' * max(0, min(bar_max, i - 1))
-            row = f" {cc}{i}dtk [{bar}]{R} {'\033[2m'}{tc}{now}{R}"
-            sys.stdout.write(f"\r {bc}║{R}{row}{' ' * max(0, inner - len(strip_ansi(row)))}{bc}║{R}")
+            done = seconds - i + 1
+            bar  = '█' * min(blen, done) + '░' * max(0, blen - done)
+            sys.stdout.write(f"\r {cc}{i}dtk{R} [{bar}] \033[2m{tc}{now}{R}  ")
             sys.stdout.flush()
             time.sleep(1)
+        print()
 
     run_ts = datetime.now().strftime("%H:%M:%S")
-    ts_c   = rgb_color(tick + 0.8, 5)
-    ts_row = f" \033[1;32m▶ Mulai{R}  \033[2mpada{R} {ts_c}{run_ts}{R}"
-    sys.stdout.write(f"\r {bc}║{R}{ts_row}{' ' * max(0, inner - len(strip_ansi(ts_row)))}{bc}║{R}\n")
-    print(f" {bc}╚{'═' * box_w}╝{R}\n")
+    tc     = rgb_color(tick + 0.8, 5)
+    print(f" \033[1;32m▶ Mulai{R}  \033[2mpada{R} {tc}{run_ts}{R}")
+    div(0.8)
+    print()
 
 def _handle_choice(choice):
     R = Style.RESET_ALL
