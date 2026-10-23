@@ -236,31 +236,9 @@ def matrix_loading(duration=3):
 # ══════════════════════════════════════════════
 
 def print_banner(tick=0):
-    R   = Style.RESET_ALL
-    dim = '\033[2m'
-    now = datetime.now().strftime("%H:%M:%S")
-    c2  = '\033[0;33m'
-    c3  = '\033[1;32m'
-    c4  = '\033[1;35m'
-
     print()
-
-    # Judul — ukur dari plain, cetak gradient
-    title_plain   = f"{TOOLS_NAME}  \u2014  OTP TOOL"
+    title_plain = f"{TOOLS_NAME}  \u2014  OTP TOOL"
     cprint_center(title_plain, gradient_text(title_plain, tick))
-    print()
-
-    # Info row — plain dulu untuk ukur, colored untuk cetak
-    info_plain    = f"API:{TOTAL_API}  VER:{VERSION}  DEV:{AUTHOR}"
-    info_colored  = (f"{c2}API{R}{dim}:{R}{c3}{TOTAL_API}{R}  "
-                     f"{c2}VER{R}{dim}:{R}{c3}{VERSION}{R}  "
-                     f"{c2}DEV{R}{dim}:{R}{c3}{AUTHOR}{R}")
-    cprint_center(info_plain, info_colored)
-
-    # Jam — plain untuk ukur, colored untuk cetak
-    clock_plain   = f"JAM:{now}"
-    clock_colored = f"{c2}JAM{R}{dim}:{R}{c4}{now}{R}"
-    cprint_center(clock_plain, clock_colored)
     print()
 
 # Warna background per item saat diselect: hijau, biru, merah
@@ -268,20 +246,25 @@ _SEL_BG = ['\033[42;97m', '\033[44;97m', '\033[41;97m']
 
 def print_menu(selected=0, tick=0):
     R   = Style.RESET_ALL
+    dim = '\033[2m'
     hc  = '\033[1;35m'
     nc  = '\033[0;36m'
     dc  = '\033[2;37m'
     hkc = '\033[1;33m'
+    c2  = '\033[0;33m'
+    c3  = '\033[1;32m'
+    c4  = '\033[1;35m'
+    now = datetime.now().strftime("%H:%M:%S")
 
     labels = ['Single Round', 'Infinite Loop', 'Keluar']
     descs  = ['Sekali kirim semua API', 'Kirim nonstop berulang', 'Tutup aplikasi']
 
-    # Header
+    # ── Header ──────────────────────────────────────
     cprint_center("MENU UTAMA", f"{hc}MENU UTAMA{R}")
     print()
 
+    # ── Items ────────────────────────────────────────
     for i, (label, desc) in enumerate(zip(labels, descs)):
-        # Plain text untuk ukur pad — TIDAK ada ANSI code apapun
         lp = f"  {label}  "
         dp = f"  {desc}  "
         if i == selected:
@@ -293,10 +276,22 @@ def print_menu(selected=0, tick=0):
             cprint_center(desc,  f"{dc}{desc}{R}")
         print()
 
-    # Hotkey hint — plain tanpa warna untuk ukur
+    # ── Hotkey hint ──────────────────────────────────
     hint_p = "\u2191\u2193 Nav  ENTER Pilih  Q Quit"
     hint_c = f"{hkc}\u2191\u2193{R} Nav  {hkc}ENTER{R} Pilih  {hkc}Q{R} Quit"
     cprint_center(hint_p, hint_c)
+    print()
+
+    # ── Info + Jam (di bawah hint) ───────────────────
+    info_p = f"API:{TOTAL_API}  VER:{VERSION}  DEV:{AUTHOR}"
+    info_c = (f"{c2}API{R}{dim}:{R}{c3}{TOTAL_API}{R}  "
+              f"{c2}VER{R}{dim}:{R}{c3}{VERSION}{R}  "
+              f"{c2}DEV{R}{dim}:{R}{c3}{AUTHOR}{R}")
+    cprint_center(info_p, info_c)
+
+    clock_p = f"JAM:{now}"
+    clock_c = f"{c2}JAM{R}{dim}:{R}{c4}{now}{R}"
+    cprint_center(clock_p, clock_c)
     print()
 
 # ══════════════════════════════════════════════
@@ -613,18 +608,20 @@ def menu_navigation():
                 time.sleep(1.2)
         return
 
-    # Termux: menu digambar sekali, clock diupdate in-place tiap 1 detik
-    # Baris clock ada di baris ke-5 setelah clear_screen (print_banner layout)
-    CLOCK_ROW = 5
+    # Termux: menu digambar sekali saat navigasi, clock overwrite in-place tiap 1 detik.
+    # Layout setelah clear: baris 1=blank, 2=judul, 3=blank, 4=MENU UTAMA,
+    # 5=blank, 6-14=items+blanks, 15=hint, 16=blank, 17=info, 18=JAM
+    CLOCK_ROW = 18
 
-    def draw_menu():
-        """Full render sekali — dipanggil saat start dan saat navigasi."""
-        clear_screen()
+    def draw_menu(sel):
+        """Full render — pakai ANSI clear langsung, terima sel eksplisit."""
+        sys.stdout.write('\033[H\033[2J')   # move home + clear screen (no subprocess)
+        sys.stdout.flush()
         print_banner(0)
-        print_menu(selected, 0)
+        print_menu(sel, 0)
 
     def clock_loop(stop_ev):
-        """Hanya overwrite baris JAM, gak menyentuh layout lain."""
+        """Hanya overwrite baris JAM, tidak menyentuh baris lain."""
         R2  = Style.RESET_ALL
         dim = '\033[2m'
         c2  = '\033[0;33m'
@@ -632,14 +629,13 @@ def menu_navigation():
         while not stop_ev.is_set():
             now           = datetime.now().strftime("%H:%M:%S")
             w             = ui_w()
-            clock_plain   = f"JAM:{now}"
-            clock_colored = f"{c2}JAM{R2}{dim}:{R2}{c4}{now}{R2}"
-            pad           = max(0, (w - len(clock_plain)) // 2)
-            # Pindah ke baris clock, clear baris, tulis jam baru
+            clock_p       = f"JAM:{now}"
+            clock_c       = f"{c2}JAM{R2}{dim}:{R2}{c4}{now}{R2}"
+            pad           = max(0, (w - len(clock_p)) // 2)
             sys.stdout.write(f'\033[{CLOCK_ROW};1H\033[2K')
-            sys.stdout.write(' ' * pad + clock_colored)
+            sys.stdout.write(' ' * pad + clock_c)
             sys.stdout.flush()
-            stop_ev.wait(1.0)   # 1 detik atau langsung berhenti kalau di-set
+            stop_ev.wait(1.0)
 
     stop_flag = threading.Event()
 
@@ -649,17 +645,15 @@ def menu_navigation():
         t.start()
         return t
 
-    draw_menu()
+    draw_menu(selected)
     clock_thread = start_clock()
 
     try:
         while True:
-            # Block sampai ada keypress — gak pakai polling timeout
             key = get_key(timeout=None)
             if key is None:
                 continue
 
-            # Stop clock dulu sebelum redraw
             stop_flag.set()
             clock_thread.join(timeout=1.1)
 
@@ -676,8 +670,8 @@ def menu_navigation():
             elif key in ('q', 'Q'):
                 _exit_clean()
 
-            # Redraw sekali, lanjut clock lagi
-            draw_menu()
+            # Eksplisit pass selected — tidak ada closure ambiguity
+            draw_menu(selected)
             clock_thread = start_clock()
 
     except KeyboardInterrupt:
