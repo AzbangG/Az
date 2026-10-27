@@ -1,4 +1,4 @@
-import os, sys, json, socket, ssl, ipaddress, urllib.request, urllib.error, re
+import os, sys, json, socket, ssl, ipaddress, urllib.request, urllib.error, re, io, struct, datetime
 from urllib.parse import quote_plus, urlencode, urlparse, urljoin
 from html.parser import HTMLParser
 from pathlib import Path
@@ -62,23 +62,153 @@ class ResultParser(HTMLParser):
         if tag == "div" and self.capture_snippet:
             self.capture_snippet = False
 
+# ─────────────────────────────────────────────
+# HELPERS — GPS & MP4 (dipakai modul 17 & 18)
+# ─────────────────────────────────────────────
+
+def _gps_to_decimal(coords, ref):
+    """Konversi tuple EXIF GPS ke decimal degrees."""
+    try:
+        def f(v):
+            return v.numerator / v.denominator if hasattr(v, "numerator") and v.denominator else float(v)
+        d, m, s = coords
+        deg = f(d) + f(m) / 60 + f(s) / 3600
+        return -deg if str(ref) in ("S", "W") else deg
+    except Exception:
+        return None
+
+
+def _dec_to_dms(deg, axis):
+    """Decimal degrees → DMS string (contoh: 6°12'3.00\"S)."""
+    dirs = {"lat": ("N", "S"), "lon": ("E", "W")}
+    d = int(abs(deg))
+    m_f = (abs(deg) - d) * 60
+    m = int(m_f)
+    s = (m_f - m) * 60
+    ref = dirs[axis][0] if deg >= 0 else dirs[axis][1]
+    return f"{d}\u00b0{m}'{s:.2f}\"{ref}"
+
+
+MAC_EPOCH = 2082844800  # detik antara Mac epoch (1904) dan Unix epoch (1970)
+
+def _find_mp4_box(data, offset, target):
+    """Cari satu MP4 box by type. Return (pos, size, header_size) atau (-1,0,0)."""
+    pos = offset
+    target_b = target.encode("latin-1")
+    while pos + 8 <= len(data):
+        size = struct.unpack(">I", data[pos:pos+4])[0]
+        btype = data[pos+4:pos+8]
+        if size == 1 and pos + 16 <= len(data):
+            size = struct.unpack(">Q", data[pos+8:pos+16])[0]
+            hdr = 16
+        elif size == 0:
+            size = len(data) - pos
+            hdr = 8
+        else:
+            hdr = 8
+        if size < 8:
+            break
+        if btype == target_b:
+            return pos, size, hdr
+        pos += size
+    return -1, 0, 0
+
+
+def parse_mp4_metadata(data):
+    """Ekstrak metadata dasar dari binary MP4/MOV. Return dict."""
+    result = {}
+
+    # ftyp — brand/format
+    p, sz, h = _find_mp4_box(data, 0, "ftyp")
+    if p >= 0 and p + 12 <= len(data):
+        brand = data[p+8:p+12].decode("latin-1", errors="replace").strip()
+        result["Format"] = f"MP4/QuickTime (brand: {brand})"
+
+    # moov — container utama
+    p, sz, h = _find_mp4_box(data, 0, "moov")
+    if p < 0:
+        return result
+    moov = data[p+h:p+sz]
+
+    # mvhd — movie header: creation time, duration
+    mp, msz, mh = _find_mp4_box(moov, 0, "mvhd")
+    if mp >= 0:
+        mvhd = moov[mp+mh:mp+msz]
+        ver = mvhd[0] if mvhd else 0
+        try:
+            if ver == 1 and len(mvhd) >= 32:
+                ct  = struct.unpack(">Q", mvhd[4:12])[0]
+                mt  = struct.unpack(">Q", mvhd[12:20])[0]
+                ts  = struct.unpack(">I", mvhd[20:24])[0]
+                dur = struct.unpack(">Q", mvhd[24:32])[0]
+            elif len(mvhd) >= 20:
+                ct  = struct.unpack(">I", mvhd[4:8])[0]
+                mt  = struct.unpack(">I", mvhd[8:12])[0]
+                ts  = struct.unpack(">I", mvhd[12:16])[0]
+                dur = struct.unpack(">I", mvhd[16:20])[0]
+            else:
+                ct = mt = ts = dur = 0
+            if ct > MAC_EPOCH:
+                result["Dibuat"] = datetime.datetime.utcfromtimestamp(ct - MAC_EPOCH).strftime("%Y-%m-%d %H:%M:%S UTC")
+            if mt > MAC_EPOCH:
+                result["Dimodifikasi"] = datetime.datetime.utcfromtimestamp(mt - MAC_EPOCH).strftime("%Y-%m-%d %H:%M:%S UTC")
+            if ts and dur:
+                sec = dur / ts
+                result["Durasi"] = f"{int(sec // 60)}m {int(sec % 60)}s"
+        except struct.error:
+            pass
+
+    # udta — user data (GPS, software, kamera, dll)
+    up, usz, uh = _find_mp4_box(moov, 0, "udta")
+    if up >= 0:
+        udta = moov[up+uh:up+usz]
+        for tag, label in [
+            ("\xa9xyz", "GPS (\u00a9xyz)"),
+            ("\xa9day", "Tanggal (\u00a9day)"),
+            ("\xa9mak", "Pembuat (\u00a9mak)"),
+            ("\xa9mod", "Model (\u00a9mod)"),
+            ("\xa9swr", "Software (\u00a9swr)"),
+            ("\xa9nam", "Nama (\u00a9nam)"),
+            ("\xa9cmt", "Komentar (\u00a9cmt)"),
+        ]:
+            tag_b = tag.encode("latin-1")
+            idx = udta.find(tag_b)
+            if idx >= 0:
+                chunk = udta[idx + len(tag_b) + 4:]  # skip box size (4 bytes)
+                val = chunk[:128].decode("utf-8", errors="replace").strip("\x00").strip()
+                if val:
+                    result[label] = val
+
+    return result
+
 def banner():
     os.system("cls" if os.name == "nt" else "clear")
-    print(C + "=" * 29)
+    print(C + "=" * 31)
     print("         AZ-OSINT-TOOL")
-    print("=" * 29 + W)
-    print("[1] Social Check")
-    print("[2] Metadata Check")
-    print("[3] Digital Footprint Check")
-    print("[4] Domain Intelligence")
-    print("[5] Email Intelligence")
-    print("[6] Numbers Intelligence (Indonesia)")
-    print("[7] IP Intelligence")
-    print("[8] Website Safety Checker")
-    print("[9] Website Style Grabber (HTML/CSS)")
+    print("=" * 31 + W)
+    print("[1]  Social Check")
+    print("[2]  Metadata Check (file lokal)")
+    print("[3]  Digital Footprint Check")
+    print("[4]  Domain Intelligence")
+    print("[5]  Email Intelligence")
+    print(C + "-" * 31 + W)
+    print("[6]  Numbers Intelligence (Indonesia)")
+    print("[7]  IP Intelligence")
+    print("[8]  Website Safety Checker")
+    print("[9]  Website Style Grabber (HTML/CSS)")
     print("[10] School Info Grabber (NPSN)")
-    print("[0] Exit")
-    print("=" * 29)
+    print(C + "-" * 31 + W)
+    print("[11] Subdomain Finder (crt.sh)")
+    print("[12] Paste Site Intelligence")
+    print("[13] Username Extended Check")
+    print("[14] Reverse IP Lookup")
+    print("[15] Google Dork Generator")
+    print(C + "-" * 31 + W)
+    print("[16] Shodan Intelligence")
+    print("[17] URL Media Metadata (gambar/video)")
+    print("[18] Geo-OSINT (Creepy-style)")
+    print("[0]  Exit")
+    print("=" * 31)
 
 def footprint():
     user = input("Username: ").strip().lstrip("@")
@@ -811,30 +941,721 @@ def school_info_grabber():
         print(R + f"Gagal mengambil data: {exc}" + W)
         print("Portal resmi: https://referensi.data.kemendikdasmen.go.id/")
 
+# ─────────────────────────────────────────────
+# [11] SUBDOMAIN FINDER — crt.sh (Certificate Transparency)
+# ─────────────────────────────────────────────
+def subdomain_finder():
+    raw = input("Domain target (contoh: example.com): ")
+    domain = normalize_domain(raw)
+    if not domain:
+        print(R + "Domain tidak valid." + W)
+        return
+
+    url = f"https://crt.sh/?q=%.{quote_plus(domain)}&output=json"
+    print(Y + f"\nMencari subdomain via Certificate Transparency (crt.sh)...\n" + W)
+    req = urllib.request.Request(url, headers={"User-Agent": "AZ-OSINT-Tool/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            data = json.loads(res.read().decode("utf-8", errors="replace"))
+        subdomains = set()
+        for entry in data:
+            for sub in entry.get("name_value", "").split("\n"):
+                sub = sub.strip().lstrip("*.")
+                if sub and sub.endswith(domain):
+                    subdomains.add(sub.lower())
+        if not subdomains:
+            print(Y + "Tidak ada subdomain ditemukan di Certificate Transparency." + W)
+            return
+        print(G + f"Ditemukan {len(subdomains)} subdomain unik:\n" + W)
+        for sub in sorted(subdomains):
+            print(f"  {sub}")
+        if input("\nSimpan ke file TXT? (y/n): ").strip().lower() == "y":
+            out = Path(f"subdomains_{domain}.txt")
+            out.write_text("\n".join(sorted(subdomains)), encoding="utf-8")
+            print(G + "Disimpan:", out.resolve(), W)
+    except Exception as e:
+        print(R + f"Gagal mengambil data: {e}" + W)
+    print(Y + "\nCatatan: hanya subdomain yang pernah punya sertifikat TLS publik yang muncul." + W)
+
+
+# ─────────────────────────────────────────────
+# [12] PASTE SITE INTELLIGENCE
+# ─────────────────────────────────────────────
+def paste_intelligence():
+    keyword = input("Kata kunci / email / username: ").strip()
+    if not keyword:
+        print(R + "Kata kunci tidak boleh kosong." + W)
+        return
+
+    encoded = quote_plus(f'"{keyword}"')
+    paste_searches = [
+        ("Pastebin",    f"https://www.google.com/search?q={encoded}+site%3Apastebin.com"),
+        ("Ghostbin",    f"https://www.google.com/search?q={encoded}+site%3Aghostbin.com"),
+        ("Hastebin",    f"https://www.google.com/search?q={encoded}+site%3Ahastebin.com"),
+        ("Pastes.io",   f"https://www.google.com/search?q={encoded}+site%3Apastes.io"),
+        ("Paste.ee",    f"https://www.google.com/search?q={encoded}+site%3Apaste.ee"),
+        ("Rentry.co",   f"https://www.google.com/search?q={encoded}+site%3Arentry.co"),
+        ("Pasteio",     f"https://www.google.com/search?q={encoded}+site%3Apaste.io"),
+        ("Controlc",    f"https://www.google.com/search?q={encoded}+site%3Acontrolc.com"),
+    ]
+
+    print(Y + f"\nMembuat tautan pencarian paste sites untuk: {keyword}\n" + W)
+    for name, url in paste_searches:
+        print(C + f"[{name}]" + W)
+        print(url + "\n")
+    print(Y + "Catatan: paste privat atau yang sudah dihapus tidak akan muncul. Buka tautan manual di browser." + W)
+
+
+# ─────────────────────────────────────────────
+# [13] USERNAME EXTENDED CHECK (20+ platform)
+# ─────────────────────────────────────────────
+SITES_EXTENDED = {
+    "Twitter/X":    "https://x.com/{}",
+    "LinkedIn":     "https://www.linkedin.com/in/{}/",
+    "Facebook":     "https://www.facebook.com/{}",
+    "Telegram":     "https://t.me/{}",
+    "Snapchat":     "https://www.snapchat.com/add/{}",
+    "Spotify":      "https://open.spotify.com/user/{}",
+    "SoundCloud":   "https://soundcloud.com/{}",
+    "Behance":      "https://www.behance.net/{}",
+    "Dribbble":     "https://dribbble.com/{}",
+    "Medium":       "https://medium.com/@{}",
+    "Dev.to":       "https://dev.to/{}",
+    "Keybase":      "https://keybase.io/{}",
+    "HackerNews":   "https://news.ycombinator.com/user?id={}",
+    "Steam":        "https://steamcommunity.com/id/{}",
+    "Roblox":       "https://www.roblox.com/user.aspx?username={}",
+    "Linktree":     "https://linktr.ee/{}",
+    "Gravatar":     "https://gravatar.com/{}",
+    "Fiverr":       "https://www.fiverr.com/{}",
+    "Replit":       "https://replit.com/@{}",
+    "Codecademy":   "https://www.codecademy.com/profiles/{}",
+    "About.me":     "https://about.me/{}",
+    "Carrd":        "https://{}.carrd.co",
+}
+
+def username_extended():
+    user = input("Username: ").strip().lstrip("@")
+    if not user or "/" in user or any(c.isspace() for c in user):
+        print(R + "Username tidak valid." + W)
+        return
+
+    print(Y + f"\nMemeriksa {len(SITES_EXTENDED)} platform tambahan untuk: {user}\n" + W)
+    found = 0
+    for name, template in SITES_EXTENDED.items():
+        url = template.format(user)
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 AZ-OSINT-Tool/1.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=7) as res:
+                print(G + f"[{res.status}] {name}: {url}" + W)
+                found += 1
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                print(R + f"[404] {name}: tidak ditemukan" + W)
+            else:
+                print(Y + f"[{e.code}] {name}: belum terverifikasi" + W)
+        except Exception:
+            print(Y + f"[?]   {name}: gagal diperiksa" + W)
+
+    print(Y + f"\n{found}/{len(SITES_EXTENDED)} platform merespons positif. Status HTTP bukan bukti pasti akun ada." + W)
+
+
+# ─────────────────────────────────────────────
+# [14] REVERSE IP LOOKUP
+# ─────────────────────────────────────────────
+def reverse_ip():
+    raw = input("Domain atau IP (contoh: example.com / 93.184.216.34): ").strip()
+    if not raw:
+        print(R + "Input tidak boleh kosong." + W)
+        return
+
+    target_ip = None
+    try:
+        ipaddress.ip_address(raw)
+        target_ip = raw
+    except ValueError:
+        domain = normalize_domain(raw)
+        if not domain:
+            print(R + "Input tidak valid." + W)
+            return
+        try:
+            target_ip = socket.gethostbyname(domain)
+            print(G + f"Domain '{domain}' → IP: {target_ip}" + W)
+        except Exception as e:
+            print(R + f"Gagal resolve DNS: {e}" + W)
+            return
+
+    if not ipaddress.ip_address(target_ip).is_global:
+        print(R + "IP bukan alamat publik. Reverse lookup tidak berlaku." + W)
+        return
+
+    print(Y + f"\nMencari domain lain yang berbagi IP {target_ip}...\n" + W)
+
+    url = f"https://api.hackertarget.com/reverseiplookup/?q={target_ip}"
+    print(C + "[HackerTarget Reverse IP]" + W)
+    req = urllib.request.Request(url, headers={"User-Agent": "AZ-OSINT-Tool/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=12) as res:
+            text = res.read().decode("utf-8", errors="replace").strip()
+        if "error" in text.lower() or "API count" in text.lower():
+            print(Y + "Batas API HackerTarget tercapai atau error:" + W)
+            print(text[:300])
+        else:
+            domains = [d.strip() for d in text.splitlines() if d.strip()]
+            print(G + f"Ditemukan {len(domains)} domain pada IP {target_ip}:\n" + W)
+            for d in domains[:50]:
+                print(f"  {d}")
+            if len(domains) > 50:
+                print(Y + f"  ... dan {len(domains) - 50} domain lainnya." + W)
+            if input("\nSimpan ke file TXT? (y/n): ").strip().lower() == "y":
+                out = Path(f"reverseip_{target_ip}.txt")
+                out.write_text("\n".join(domains), encoding="utf-8")
+                print(G + "Disimpan:", out.resolve(), W)
+    except Exception as e:
+        print(Y + f"Gagal mengambil data HackerTarget: {e}" + W)
+
+    print(C + "\n[ViewDNS (manual browser)]" + W)
+    print(f"https://viewdns.info/reverseip/?host={target_ip}&t=1")
+    print(Y + "\nCatatan: shared hosting wajar punya banyak domain di satu IP; tidak berarti saling terhubung." + W)
+
+
+# ─────────────────────────────────────────────
+# [15] GOOGLE DORK GENERATOR
+# ─────────────────────────────────────────────
+DORK_TEMPLATES = {
+    "1": ("File sensitif publik (PDF/DOC/XLS/CSV)",
+          'site:{d} (filetype:pdf OR filetype:doc OR filetype:xls OR filetype:xlsx OR filetype:csv)'),
+    "2": ("Login & panel admin",
+          'site:{d} (inurl:login OR inurl:admin OR inurl:signin OR inurl:dashboard OR inurl:panel)'),
+    "3": ("Direktori terbuka",
+          'site:{d} intitle:"index of"'),
+    "4": ("File konfigurasi & environment",
+          'site:{d} (filetype:env OR filetype:cfg OR filetype:conf OR inurl:.env OR inurl:config)'),
+    "5": ("Backup & database dump",
+          'site:{d} (filetype:bak OR filetype:sql OR filetype:zip OR filetype:tar OR inurl:backup)'),
+    "6": ("Error & stack trace bocor",
+          'site:{d} (intext:"SQL syntax" OR intext:"Warning: mysql" OR intext:"stack trace" OR intext:"Fatal error")'),
+    "7": ("Email & kontak publik",
+          'site:{d} (intext:"@{d}" OR intext:"hubungi kami" OR intext:"contact us")'),
+    "8": ("Semua kategori di atas", None),
+}
+
+def google_dork_generator():
+    raw = input("Target domain (contoh: example.com): ")
+    domain = normalize_domain(raw)
+    if not domain:
+        print(R + "Domain tidak valid." + W)
+        return
+
+    print(C + "\nPilih kategori dork:" + W)
+    for key, (name, _) in DORK_TEMPLATES.items():
+        print(f"[{key}] {name}")
+    choice = input("Pilihan: ").strip()
+    if choice not in DORK_TEMPLATES:
+        print(R + "Pilihan tidak valid." + W)
+        return
+
+    if choice == "8":
+        dorks = [(name, tmpl) for k, (name, tmpl) in DORK_TEMPLATES.items() if k != "8"]
+    else:
+        name, tmpl = DORK_TEMPLATES[choice]
+        dorks = [(name, tmpl)]
+
+    print(Y + f"\nGoogle Dork Generator — target: {domain}\n" + W)
+    all_results = []
+    for name, tmpl in dorks:
+        query = tmpl.format(d=domain)
+        url = "https://www.google.com/search?q=" + quote_plus(query)
+        print(C + f"[{name}]" + W)
+        print("Query :", query)
+        print("Link  :", url)
+        print()
+        all_results.append((name, query, url))
+
+    if input("Simpan semua dork ke TXT? (y/n): ").strip().lower() == "y":
+        out = Path(f"dorks_{domain}.txt")
+        lines = [f"Google Dork Report — {domain}", "=" * 40, ""]
+        for name, query, url in all_results:
+            lines += [f"[{name}]", f"Query : {query}", f"Link  : {url}", ""]
+        out.write_text("\n".join(lines), encoding="utf-8")
+        print(G + "Disimpan:", out.resolve(), W)
+
+    print(Y + "\nCatatan: gunakan hanya untuk domain yang kamu miliki atau ada izin audit. Hasil bergantung pada indeks Google." + W)
+
+# ─────────────────────────────────────────────
+# [16] SHODAN INTELLIGENCE
+# ─────────────────────────────────────────────
+def shodan_intelligence():
+    api_key = os.environ.get("SHODAN_API_KEY", "qy4TbQZpJClz71ANdUGBuNXdO4yyhyvL").strip()
+    if not api_key:
+        print(Y + "Tip: set env var SHODAN_API_KEY agar tidak perlu input tiap kali." + W)
+        api_key = input("Shodan API Key (gratis di shodan.io): ").strip()
+    if not api_key:
+        print(R + "API key tidak boleh kosong." + W)
+        return
+
+    raw = input("IP atau Domain target: ").strip()
+    if not raw:
+        print(R + "Input tidak boleh kosong." + W)
+        return
+
+    target_ip = None
+    try:
+        ipaddress.ip_address(raw)
+        target_ip = raw
+    except ValueError:
+        domain = normalize_domain(raw)
+        if not domain:
+            print(R + "Input tidak valid." + W)
+            return
+        print(Y + f"Resolving '{domain}' via Shodan DNS..." + W)
+        try:
+            data = fetch_json(
+                f"https://api.shodan.io/dns/resolve?hostnames={quote_plus(domain)}&key={api_key}"
+            )
+            target_ip = data.get(domain)
+            if not target_ip:
+                print(R + "Shodan tidak bisa resolve domain ini." + W)
+                return
+            print(G + f"  → {target_ip}" + W)
+        except Exception as e:
+            print(R + f"Gagal resolve via Shodan: {e}" + W)
+            return
+
+    print(Y + f"\nMengambil data Shodan untuk: {target_ip}\n" + W)
+    try:
+        data = fetch_json(
+            f"https://api.shodan.io/shodan/host/{target_ip}?key={api_key}"
+        )
+
+        print(C + "[INFO UMUM]" + W)
+        print(f"IP         : {data.get('ip_str', target_ip)}")
+        hostnames  = data.get("hostnames", [])
+        if hostnames:
+            print(f"Hostname   : {', '.join(hostnames)}")
+        print(f"Organisasi : {data.get('org', 'Tidak tersedia')}")
+        print(f"ISP        : {data.get('isp', 'Tidak tersedia')}")
+        print(f"ASN        : {data.get('asn', 'Tidak tersedia')}")
+        print(f"OS         : {data.get('os', 'Tidak terdeteksi')}")
+        print(f"Negara     : {data.get('country_name', '')} [{data.get('country_code', '')}]")
+        city = data.get("city")
+        if city:
+            print(f"Kota       : {city}")
+        lat_sh = data.get("latitude")
+        lon_sh = data.get("longitude")
+        if lat_sh and lon_sh:
+            print(f"Koordinat  : {lat_sh}, {lon_sh}")
+            print(f"  → Maps   : https://maps.google.com/?q={lat_sh},{lon_sh}")
+        last_upd = data.get("last_update")
+        if last_upd:
+            print(f"Last seen  : {last_upd}")
+
+        ports = sorted(data.get("ports", []))
+        if ports:
+            print(C + f"\n[OPEN PORTS ({len(ports)})]" + W)
+            print("  " + "  ".join(str(p) for p in ports))
+
+        services = data.get("data", [])
+        if services:
+            print(C + f"\n[SERVICES ({len(services)})]" + W)
+            for svc in services[:15]:
+                port      = svc.get("port", "?")
+                transport = svc.get("transport", "tcp")
+                product   = svc.get("product", "")
+                version   = svc.get("version", "")
+                banner    = svc.get("data", "").strip()[:120].replace("\n", " ")
+                line = f"  {port}/{transport}"
+                if product:
+                    line += f"  {product}"
+                if version:
+                    line += f" {version}"
+                print(G + line + W)
+                if banner:
+                    print(f"    Banner : {banner}")
+
+        vulns = data.get("vulns", [])
+        if vulns:
+            print(C + f"\n[VULNERABILITIES ({len(vulns)})]" + W)
+            for v in sorted(vulns)[:20]:
+                print(Y + f"  {v}" + W)
+
+        tags = data.get("tags", [])
+        if tags:
+            print(C + "\n[TAGS]" + W)
+            print("  " + ", ".join(tags))
+
+        if input("\nSimpan raw JSON? (y/n): ").strip().lower() == "y":
+            out = Path(f"shodan_{target_ip.replace(':', '_')}.json")
+            out.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+            print(G + "Disimpan:", out.resolve(), W)
+
+    except urllib.error.HTTPError as e:
+        msgs = {401: "API key tidak valid.", 404: "IP tidak ada di database Shodan.",
+                429: "Rate limit tercapai. Tunggu beberapa menit."}
+        print(R + msgs.get(e.code, f"HTTP error {e.code}.") + W)
+    except Exception as e:
+        print(R + f"Gagal: {e}" + W)
+
+    print(C + f"\n[Shodan Web]" + W)
+    print(f"https://www.shodan.io/host/{target_ip}")
+    print(Y + "\nCatatan: free API key = 1 query credit/bulan untuk host lookup. Daftar di shodan.io." + W)
+
+
+# ─────────────────────────────────────────────
+# [17] URL MEDIA METADATA
+#      Gambar: EXIF penuh via Pillow
+#      Video : MP4/MOV container metadata (pure Python)
+#      Social media post URL: auto-extract og:image / og:video dulu
+#
+#      CATATAN PENTING soal video:
+#      - File MP4/MOV langsung (CDN, server sendiri): creation time, durasi, GPS ©xyz bisa ada
+#      - Video dari TikTok/IG/YT yang sudah dihost: platform strip metadata,
+#        yang tersisa hanya container info (duration, codec brand)
+#      - Untuk analisis video penuh: ffprobe (ffmpeg) jauh lebih dalam
+# ─────────────────────────────────────────────
+def url_media_metadata():
+    url = input("URL gambar / video / postingan media sosial: ").strip()
+    if not url:
+        print(R + "URL tidak boleh kosong." + W)
+        return
+    if "://" not in url:
+        url = "https://" + url
+
+    parsed_url = urlparse(url)
+    domain     = (parsed_url.hostname or "").lower()
+
+    VIDEO_EXTS = (".mp4", ".mov", ".m4v", ".3gp", ".avi", ".mkv", ".webm")
+    IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp", ".heic")
+    SOCIAL     = ("instagram.com", "tiktok.com", "twitter.com", "x.com",
+                  "facebook.com", "reddit.com", "pinterest.com", "threads.net",
+                  "youtube.com", "youtu.be")
+
+    path_bare      = parsed_url.path.lower().split("?")[0]
+    is_direct_img  = any(path_bare.endswith(e) for e in IMAGE_EXTS)
+    is_direct_vid  = any(path_bare.endswith(e) for e in VIDEO_EXTS)
+    is_social_post = any(d in domain for d in SOCIAL) and not (is_direct_img or is_direct_vid)
+
+    media_url  = url
+    type_hint  = None
+
+    if is_social_post:
+        print(Y + "\nURL terdeteksi sebagai postingan — mengekstrak og:image/og:video...\n" + W)
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (compatible; facebookexternalhit/1.1)"
+        })
+        try:
+            with urllib.request.urlopen(req, timeout=12) as res:
+                html = res.read(600_000).decode("utf-8", errors="ignore")
+
+            og_vid = re.search(
+                r'<meta[^>]+property=["\']og:video(?::url)?["\'][^>]+content=["\'](https?://[^"\']+)["\']',
+                html, re.I
+            )
+            og_img = re.search(
+                r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\'](https?://[^"\']+)["\']',
+                html, re.I
+            )
+            if og_vid:
+                media_url = og_vid.group(1)
+                type_hint = "video"
+                print(G + f"[og:video] {media_url}" + W)
+            elif og_img:
+                media_url = og_img.group(1)
+                type_hint = "image"
+                print(G + f"[og:image] {media_url}" + W)
+            else:
+                print(Y + "og:image/og:video tidak ditemukan. Mencoba URL langsung." + W)
+        except Exception as e:
+            print(Y + f"Gagal ambil halaman: {e}. Lanjut ke URL langsung." + W)
+    elif is_direct_img:
+        type_hint = "image"
+    elif is_direct_vid:
+        type_hint = "video"
+
+    LIMIT = 12 * 1024 * 1024  # 12 MB
+    print(Y + f"\nMengunduh media ({LIMIT // 1024 // 1024}MB maks)...\n" + W)
+    req = urllib.request.Request(media_url, headers={
+        "User-Agent": "Mozilla/5.0 (compatible; AZ-OSINT-Tool/1.0)",
+        "Range"     : f"bytes=0-{LIMIT - 1}"
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=25) as res:
+            ct   = res.headers.get("Content-Type", "").lower()
+            clen = res.headers.get("Content-Length", "?")
+            data = res.read(LIMIT)
+
+        print(C + "[HTTP Info]" + W)
+        print(f"Content-Type   : {ct}")
+        print(f"Content-Length : {clen} bytes")
+        print(f"Diunduh        : {len(data):,} bytes")
+
+        if type_hint is None:
+            if "video" in ct:
+                type_hint = "video"
+            elif "image" in ct:
+                type_hint = "image"
+
+        # ── IMAGE ──
+        if type_hint == "image" or ("image" in ct and type_hint != "video"):
+            print(C + "\n[Metadata Gambar / EXIF]" + W)
+            try:
+                from PIL import Image
+                from PIL.ExifTags import TAGS, GPSTAGS
+                with Image.open(io.BytesIO(data)) as img:
+                    print(f"Format  : {img.format}")
+                    print(f"Ukuran  : {img.size[0]}×{img.size[1]} px")
+                    print(f"Mode    : {img.mode}")
+                    exif = img.getexif()
+                    if not exif:
+                        print(Y + "Tidak ada EXIF — platform kemungkinan sudah strip metadata." + W)
+                    else:
+                        lat_e = lon_e = None
+                        for key, val in exif.items():
+                            tag = TAGS.get(key, str(key))
+                            if tag == "GPSInfo":
+                                try:
+                                    gps = {GPSTAGS.get(k, k): v for k, v in val.items()}
+                                    lat_e = _gps_to_decimal(gps.get("GPSLatitude"), gps.get("GPSLatitudeRef", "N"))
+                                    lon_e = _gps_to_decimal(gps.get("GPSLongitude"), gps.get("GPSLongitudeRef", "E"))
+                                    print(f"GPSInfo : {gps}")
+                                except Exception:
+                                    print(f"GPSInfo : {val}")
+                            else:
+                                if isinstance(val, bytes):
+                                    val = val[:60]
+                                print(f"{tag}: {val}")
+
+                        if lat_e is not None and lon_e is not None:
+                            print(G + f"\n[GPS Terdeteksi]" + W)
+                            print(f"Koordinat   : {lat_e:.6f}, {lon_e:.6f}")
+                            print(f"Google Maps : https://maps.google.com/?q={lat_e},{lon_e}")
+                            print(f"OSM         : https://www.openstreetmap.org/?mlat={lat_e}&mlon={lon_e}")
+            except ImportError:
+                print(R + "Pillow belum terpasang. pip install Pillow" + W)
+            except Exception as e:
+                print(R + f"Gagal baca metadata gambar: {e}" + W)
+
+        # ── VIDEO ──
+        elif type_hint == "video" or "video" in ct:
+            print(C + "\n[Metadata Video]" + W)
+            is_mp4 = len(data) >= 8 and data[4:8] in (b"ftyp", b"moov", b"free", b"mdat")
+            if not is_mp4:
+                # try finding ftyp anywhere in first 64 bytes
+                is_mp4 = b"ftyp" in data[:64]
+
+            if not is_mp4:
+                print(Y + "Format tidak terdeteksi sebagai MP4/MOV dari data awal yang diunduh." + W)
+                print(Y + "Untuk analisis mendalam gunakan: ffprobe -v quiet -print_format json -show_format -show_streams <url>" + W)
+            else:
+                meta = parse_mp4_metadata(data)
+                if meta:
+                    for k, v in meta.items():
+                        if "GPS" in k:
+                            print(G + f"{k}: {v}" + W)
+                            gm = re.match(r"([+-]?\d+\.?\d*)([+-]\d+\.?\d*)", str(v))
+                            if gm:
+                                glat, glon = float(gm.group(1)), float(gm.group(2))
+                                print(f"  → Google Maps: https://maps.google.com/?q={glat},{glon}")
+                        else:
+                            print(f"{k}: {v}")
+                else:
+                    print(Y + "Metadata minimal — kemungkinan platform sudah strip, atau moov box ada di akhir file (perlu unduh penuh)." + W)
+
+            print(C + "\n[Analisis Lanjutan]" + W)
+            print(f'ffprobe -v quiet -print_format json -show_format -show_streams "{media_url}"')
+
+        else:
+            print(Y + f"Tipe media tidak dikenali dari Content-Type: {ct}" + W)
+
+        print(Y + "\nCatatan penting: Instagram, TikTok, Twitter, YouTube hampir selalu strip EXIF dan GPS dari media yang sudah dihost. Metadata hanya tersedia di file original sebelum upload." + W)
+
+    except urllib.error.HTTPError as e:
+        print(R + f"HTTP {e.code} — media tidak bisa diakses." + W)
+        if e.code in (401, 403):
+            print(Y + "Platform memblokir akses langsung; media memerlukan sesi login atau CDN token." + W)
+    except Exception as e:
+        print(R + f"Gagal: {e}" + W)
+
+
+# ─────────────────────────────────────────────
+# [18] GEO-OSINT (Creepy-style)
+#      Input: koordinat manual, file lokal, atau URL gambar
+#      Output: peta, reverse geocoding, OSINT search links
+# ─────────────────────────────────────────────
+def geo_osint():
+    print(C + "\nGeo-OSINT — Pilih sumber koordinat:" + W)
+    print("[1] Input koordinat manual (lat, lon)")
+    print("[2] Ekstrak GPS dari file gambar lokal")
+    print("[3] Ekstrak GPS dari URL gambar")
+    mode = input("Pilihan: ").strip()
+
+    lat = lon = None
+
+    if mode == "1":
+        raw = input("Koordinat (contoh: -6.2000, 106.8167): ").strip()
+        parts = re.split(r"[,\s]+", raw.replace("°", ""))
+        if len(parts) < 2:
+            print(R + "Format tidak valid. Gunakan: lat, lon" + W)
+            return
+        try:
+            lat, lon = float(parts[0]), float(parts[1])
+        except ValueError:
+            print(R + "Koordinat bukan angka." + W)
+            return
+
+    elif mode == "2":
+        path = input("Path file gambar: ").strip().strip('"')
+        file = Path(path).expanduser()
+        if not file.is_file():
+            print(R + "File tidak ditemukan." + W)
+            return
+        try:
+            from PIL import Image
+            from PIL.ExifTags import TAGS, GPSTAGS
+            with Image.open(file) as img:
+                exif = img.getexif()
+            if not exif:
+                print(Y + "Tidak ada EXIF di file ini." + W)
+                return
+            for key, val in exif.items():
+                if TAGS.get(key) == "GPSInfo":
+                    gps = {GPSTAGS.get(k, k): v for k, v in val.items()}
+                    lat = _gps_to_decimal(gps.get("GPSLatitude"), gps.get("GPSLatitudeRef", "N"))
+                    lon = _gps_to_decimal(gps.get("GPSLongitude"), gps.get("GPSLongitudeRef", "E"))
+                    break
+            if lat is None:
+                print(Y + "Tidak ada GPS EXIF di file ini." + W)
+                return
+        except ImportError:
+            print(R + "Pillow belum terpasang. pip install Pillow" + W)
+            return
+        except Exception as e:
+            print(R + f"Gagal: {e}" + W)
+            return
+
+    elif mode == "3":
+        img_url = input("URL gambar: ").strip()
+        if not img_url:
+            print(R + "URL tidak boleh kosong." + W)
+            return
+        if "://" not in img_url:
+            img_url = "https://" + img_url
+        try:
+            from PIL import Image
+            from PIL.ExifTags import TAGS, GPSTAGS
+            req = urllib.request.Request(img_url, headers={
+                "User-Agent": "Mozilla/5.0 AZ-OSINT-Tool/1.0"
+            })
+            with urllib.request.urlopen(req, timeout=15) as res:
+                data = res.read(6_000_000)
+            with Image.open(io.BytesIO(data)) as img:
+                exif = img.getexif()
+            if not exif:
+                print(Y + "Tidak ada EXIF — kemungkinan platform sudah strip metadata." + W)
+                return
+            for key, val in exif.items():
+                if TAGS.get(key) == "GPSInfo":
+                    gps = {GPSTAGS.get(k, k): v for k, v in val.items()}
+                    lat = _gps_to_decimal(gps.get("GPSLatitude"), gps.get("GPSLatitudeRef", "N"))
+                    lon = _gps_to_decimal(gps.get("GPSLongitude"), gps.get("GPSLongitudeRef", "E"))
+                    break
+            if lat is None:
+                print(Y + "Tidak ada GPS EXIF di gambar ini." + W)
+                return
+        except ImportError:
+            print(R + "Pillow belum terpasang. pip install Pillow" + W)
+            return
+        except Exception as e:
+            print(R + f"Gagal: {e}" + W)
+            return
+    else:
+        print(R + "Pilihan tidak valid." + W)
+        return
+
+    if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+        print(R + "Koordinat di luar range valid." + W)
+        return
+
+    print(C + f"\n[Koordinat]" + W)
+    print(f"Decimal  : {lat:.6f}, {lon:.6f}")
+    print(f"DMS      : {_dec_to_dms(lat, 'lat')}  {_dec_to_dms(lon, 'lon')}")
+
+    print(C + "\n[Peta Langsung]" + W)
+    print(f"Google Maps      : https://maps.google.com/?q={lat},{lon}")
+    print(f"Google Street    : https://www.google.com/maps/@{lat},{lon},3a,90y,0h,90t/data=!3m1!1e3")
+    print(f"Google Satellite : https://www.google.com/maps/@{lat},{lon},18z/data=!3m1!1e3")
+    print(f"OpenStreetMap    : https://www.openstreetmap.org/?mlat={lat}&mlon={lon}&zoom=16")
+    print(f"Bing Maps        : https://www.bing.com/maps?cp={lat}~{lon}&lvl=18")
+    print(f"Yandex Maps      : https://maps.yandex.com/?ll={lon},{lat}&z=17")
+    print(f"Wikimapia        : https://wikimapia.org/#lat={lat}&lon={lon}&z=16")
+
+    print(C + "\n[Reverse Geocoding — Nominatim/OSM]" + W)
+    try:
+        geo_url = (
+            f"https://nominatim.openstreetmap.org/reverse"
+            f"?lat={lat}&lon={lon}&format=json&addressdetails=1"
+        )
+        req = urllib.request.Request(geo_url, headers={
+            "User-Agent": "AZ-OSINT-Tool/1.0 (osint research)"
+        })
+        with urllib.request.urlopen(req, timeout=10) as res:
+            geo = json.loads(res.read().decode("utf-8"))
+
+        print(f"Alamat : {geo.get('display_name', 'Tidak tersedia')}")
+        addr = geo.get("address", {})
+        for field in ("road", "suburb", "village", "city", "regency",
+                      "state", "country", "postcode"):
+            val = addr.get(field)
+            if val:
+                print(f"  {field.capitalize():<12}: {val}")
+    except Exception as e:
+        print(Y + f"Reverse geocoding gagal: {e}" + W)
+
+    coord_str = f"{lat:.5f},{lon:.5f}"
+    print(C + "\n[OSINT Search Links]" + W)
+    print(f"Google Images  : https://www.google.com/search?q={quote_plus(coord_str)}&tbm=isch")
+    print(f"Google News    : https://news.google.com/search?q={quote_plus(coord_str)}")
+    print(f"Twitter/X      : https://x.com/search?q={quote_plus(coord_str)}")
+    print(f"Flickr Geo     : https://www.flickr.com/map/?fLat={lat}&fLon={lon}&zl=14")
+    print(f"Bing Aerial    : https://www.bing.com/maps?cp={lat}~{lon}&lvl=19&style=a")
+    print(f"Google Earth   : https://earth.google.com/web/@{lat},{lon},0a,500d,35y,0h,45t,0r")
+
+    if input("\nSimpan hasil ke TXT? (y/n): ").strip().lower() == "y":
+        out = Path(f"geo_osint_{lat:.4f}_{lon:.4f}.txt".replace("-", "S").replace(".", "d"))
+        lines = [
+            "Geo-OSINT Report", "=" * 40,
+            f"Koordinat: {lat:.6f}, {lon:.6f}",
+            f"DMS: {_dec_to_dms(lat, 'lat')}  {_dec_to_dms(lon, 'lon')}",
+            "",
+            "Google Maps: " + f"https://maps.google.com/?q={lat},{lon}",
+            "OSM: " + f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}&zoom=16",
+        ]
+        out.write_text("\n".join(lines), encoding="utf-8")
+        print(G + "Disimpan:", out.resolve(), W)
+
+    print(Y + "\nCatatan: platform media sosial hampir selalu strip GPS sebelum host. Koordinat hanya ada di file original." + W)
 
 while True:
     banner()
     choice = input("AZ-OSINT > ").strip()
-    if choice == "1":
-        footprint()
-    elif choice == "2":
-        metadata()
-    elif choice == "3":
-        digital_footprint()
-    elif choice == "4":
-        domain_intelligence()
-    elif choice == "5":
-        email_intelligence()
-    elif choice == "6":
-        numbers_intelligence()
-    elif choice == "7":
-        ip_intelligence()
-    elif choice == "8":
-        website_safety_checker()
-    elif choice == "9":
-        website_style_grabber()
-    elif choice == "10":
-        school_info_grabber()
+    if   choice == "1":  footprint()
+    elif choice == "2":  metadata()
+    elif choice == "3":  digital_footprint()
+    elif choice == "4":  domain_intelligence()
+    elif choice == "5":  email_intelligence()
+    elif choice == "6":  numbers_intelligence()
+    elif choice == "7":  ip_intelligence()
+    elif choice == "8":  website_safety_checker()
+    elif choice == "9":  website_style_grabber()
+    elif choice == "10": school_info_grabber()
+    elif choice == "11": subdomain_finder()
+    elif choice == "12": paste_intelligence()
+    elif choice == "13": username_extended()
+    elif choice == "14": reverse_ip()
+    elif choice == "15": google_dork_generator()
+    elif choice == "16": shodan_intelligence()
+    elif choice == "17": url_media_metadata()
+    elif choice == "18": geo_osint()
     elif choice == "0":
         print("Keluar dari AZ-OSINT-TOOL.")
         sys.exit()
