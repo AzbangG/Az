@@ -183,32 +183,37 @@ def parse_mp4_metadata(data):
 
 def banner():
     os.system("cls" if os.name == "nt" else "clear")
-    print(C + "=" * 31)
-    print("         AZ-OSINT-TOOL")
-    print("=" * 31 + W)
+    print(C + "=" * 33)
+    print("          AZ-OSINT-TOOL")
+    print("=" * 33 + W)
     print("[1]  Social Check")
     print("[2]  Metadata Check (file lokal)")
     print("[3]  Digital Footprint Check")
     print("[4]  Domain Intelligence")
     print("[5]  Email Intelligence")
-    print(C + "-" * 31 + W)
+    print(C + "-" * 33 + W)
     print("[6]  Numbers Intelligence (Indonesia)")
     print("[7]  IP Intelligence")
     print("[8]  Website Safety Checker")
     print("[9]  Website Style Grabber (HTML/CSS)")
     print("[10] School Info Grabber (NPSN)")
-    print(C + "-" * 31 + W)
+    print(C + "-" * 33 + W)
     print("[11] Subdomain Finder (crt.sh)")
     print("[12] Paste Site Intelligence")
     print("[13] Username Extended Check")
     print("[14] Reverse IP Lookup")
     print("[15] Google Dork Generator")
-    print(C + "-" * 31 + W)
+    print(C + "-" * 33 + W)
     print("[16] Shodan Intelligence")
     print("[17] URL Media Metadata (gambar/video)")
     print("[18] Geo-OSINT (Creepy-style)")
+    print(C + "-" * 33 + W)
+    print("[19] Domain Harvester (email & host)")
+    print("[20] Wayback Machine CDX Recon")
+    print("[21] ASN Intelligence (BGPView)")
+    print("[22] DNS History & Zone Recon")
     print("[0]  Exit")
-    print("=" * 31)
+    print("=" * 33)
 
 def footprint():
     user = input("Username: ").strip().lstrip("@")
@@ -1186,7 +1191,8 @@ def google_dork_generator():
 # [16] SHODAN INTELLIGENCE
 # ─────────────────────────────────────────────
 def shodan_intelligence():
-    api_key = os.environ.get("SHODAN_API_KEY", "qy4TbQZpJClz71ANdUGBuNXdO4yyhyvL").strip()
+    # SESUDAH (benar)
+    api_key = os.environ.get("SHODAN_API_KEY", "").strip()
     if not api_key:
         print(Y + "Tip: set env var SHODAN_API_KEY agar tidak perlu input tiap kali." + W)
         api_key = input("Shodan API Key (gratis di shodan.io): ").strip()
@@ -1635,6 +1641,430 @@ def geo_osint():
 
     print(Y + "\nCatatan: platform media sosial hampir selalu strip GPS sebelum host. Koordinat hanya ada di file original." + W)
 
+# ─────────────────────────────────────────────
+# [19] DOMAIN HARVESTER (theHarvester-style)
+#      Email, host, dan endpoint publik dari satu domain
+#      Sumber: crt.sh email SAN, HackerTarget hostsearch, Google dork
+# ─────────────────────────────────────────────
+def domain_harvester():
+    raw = input("Domain target (contoh: example.com): ")
+    domain = normalize_domain(raw)
+    if not domain:
+        print(R + "Domain tidak valid." + W)
+        return
+
+    emails_found = set()
+    hosts_found  = set()
+
+    # ── 1. crt.sh — email dari Subject Alternative Name sertifikat ──
+    print(Y + f"\n[1/3] crt.sh — mencari email & host di sertifikat TLS...\n" + W)
+    try:
+        url = f"https://crt.sh/?q={quote_plus(domain)}&output=json"
+        req = urllib.request.Request(url, headers={"User-Agent": "AZ-OSINT-Tool/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as res:
+            certs = json.loads(res.read().decode("utf-8", errors="replace"))
+        for entry in certs:
+            name_val = entry.get("name_value", "")
+            for part in name_val.split("\n"):
+                part = part.strip()
+                if "@" in part and "." in part.split("@")[-1]:
+                    emails_found.add(part.lower())
+                elif part.endswith(domain) or part.lstrip("*.").endswith(domain):
+                    hosts_found.add(part.lstrip("*.").lower())
+        print(G + f"  Ditemukan: {len(emails_found)} email, {len(hosts_found)} host" + W)
+    except Exception as e:
+        print(Y + f"  crt.sh gagal: {e}" + W)
+
+    # ── 2. HackerTarget hostsearch ──
+    print(Y + "\n[2/3] HackerTarget hostsearch...\n" + W)
+    try:
+        url = f"https://api.hackertarget.com/hostsearch/?q={domain}"
+        req = urllib.request.Request(url, headers={"User-Agent": "AZ-OSINT-Tool/1.0"})
+        with urllib.request.urlopen(req, timeout=12) as res:
+            text = res.read().decode("utf-8", errors="replace").strip()
+        if "error" not in text.lower() and "API" not in text:
+            before = len(hosts_found)
+            for line in text.splitlines():
+                parts = line.split(",")
+                if parts:
+                    hosts_found.add(parts[0].strip().lower())
+            print(G + f"  +{len(hosts_found) - before} host baru dari HackerTarget" + W)
+        else:
+            print(Y + f"  HackerTarget: {text[:150]}" + W)
+    except Exception as e:
+        print(Y + f"  HackerTarget gagal: {e}" + W)
+
+    # ── 3. Google dork links untuk email harvest manual ──
+    print(Y + "\n[3/3] Google dork links untuk email harvesting manual:\n" + W)
+    dorks = [
+        ("Email @domain di web publik",
+         f'site:{domain} intext:"@{domain}"'),
+        ("Email di dokumen PDF/DOC",
+         f'"@{domain}" (filetype:pdf OR filetype:doc OR filetype:xlsx)'),
+        ("Email di GitHub publik",
+         f'"@{domain}" site:github.com'),
+        ("Email di LinkedIn publik",
+         f'"@{domain}" site:linkedin.com'),
+        ("Email di Pastebin",
+         f'"@{domain}" site:pastebin.com'),
+    ]
+    for name, query in dorks:
+        url = "https://www.google.com/search?q=" + quote_plus(query)
+        print(C + f"[{name}]" + W)
+        print(url)
+
+    # ── Output ──
+    print(C + f"\n[Hasil: {len(emails_found)} Email]" + W)
+    for e in sorted(emails_found):
+        print(G + f"  {e}" + W)
+
+    print(C + f"\n[Hasil: {len(hosts_found)} Host/Subdomain]" + W)
+    for h in sorted(hosts_found)[:60]:
+        print(f"  {h}")
+    if len(hosts_found) > 60:
+        print(Y + f"  ... dan {len(hosts_found) - 60} lainnya" + W)
+
+    if (emails_found or hosts_found) and input("\nSimpan ke TXT? (y/n): ").strip().lower() == "y":
+        out = Path(f"harvest_{domain}.txt")
+        lines = [f"Domain Harvest — {domain}", "=" * 40, ""]
+        if emails_found:
+            lines += ["[EMAIL]"] + sorted(emails_found) + [""]
+        if hosts_found:
+            lines += ["[HOST/SUBDOMAIN]"] + sorted(hosts_found) + [""]
+        out.write_text("\n".join(lines), encoding="utf-8")
+        print(G + "Disimpan:", out.resolve(), W)
+
+    print(Y + "\nCatatan: hasil hanya dari sumber publik. Email dari crt.sh adalah email pemilik sertifikat, bukan email umum domain." + W)
+
+
+# ─────────────────────────────────────────────
+# [20] WAYBACK MACHINE CDX RECON
+#      Cari URL historis yang pernah diindeks Wayback
+#      Berguna untuk menemukan endpoint lama, backup, API path
+# ─────────────────────────────────────────────
+WAYBACK_FILTERS = {
+    "1": ("Semua URL",              "",                         ""),
+    "2": ("API endpoints (JSON)",   "application/json",         "mimetype"),
+    "3": ("File PHP",               ".php",                     "urlkey"),
+    "4": ("File backup & dump",     r"\.sql|\.bak|\.zip|\.tar", "urlkey"),
+    "5": ("File konfigurasi",       r"\.env|\.cfg|\.conf|\.ini","urlkey"),
+    "6": ("File dokumen",           r"\.pdf|\.doc|\.xls",       "urlkey"),
+    "7": ("Login & admin pages",    r"login|admin|panel|signin","urlkey"),
+}
+
+def wayback_cdx_recon():
+    raw = input("Domain target (contoh: example.com): ")
+    domain = normalize_domain(raw)
+    if not domain:
+        print(R + "Domain tidak valid." + W)
+        return
+
+    print(C + "\nPilih filter:" + W)
+    for k, (name, _, _) in WAYBACK_FILTERS.items():
+        print(f"[{k}] {name}")
+    choice = input("Pilihan: ").strip()
+    if choice not in WAYBACK_FILTERS:
+        print(R + "Pilihan tidak valid." + W)
+        return
+
+    filter_name, filter_val, filter_type = WAYBACK_FILTERS[choice]
+
+    limit = input("Jumlah hasil maks (default 200): ").strip()
+    limit = limit if limit.isdigit() and 1 <= int(limit) <= 5000 else "200"
+
+    cdx_url = (
+        f"https://web.archive.org/cdx/search/cdx"
+        f"?url=*.{domain}/*"
+        f"&output=json"
+        f"&limit={limit}"
+        f"&fl=original,statuscode,timestamp,mimetype"
+        f"&collapse=urlkey"
+    )
+    if filter_val:
+        if filter_type == "mimetype":
+            cdx_url += f"&filter=mimetype:{filter_val}"
+        elif filter_type == "urlkey":
+            cdx_url += f"&filter=urlkey:{filter_val}"
+
+    print(Y + f"\nQuery CDX Wayback Machine — {filter_name}...\n" + W)
+    print("Query:", cdx_url[:100] + "...")
+
+    try:
+        req = urllib.request.Request(cdx_url, headers={"User-Agent": "AZ-OSINT-Tool/1.0"})
+        with urllib.request.urlopen(req, timeout=30) as res:
+            raw_data = json.loads(res.read().decode("utf-8", errors="replace"))
+
+        if not raw_data or len(raw_data) <= 1:
+            print(Y + "Tidak ada hasil dari CDX API." + W)
+            return
+
+        headers = raw_data[0]
+        rows    = raw_data[1:]
+        print(G + f"Ditemukan {len(rows)} URL historis:\n" + W)
+
+        results = []
+        for row in rows:
+            entry = dict(zip(headers, row))
+            url_orig   = entry.get("original", "")
+            status     = entry.get("statuscode", "?")
+            ts         = entry.get("timestamp", "")
+            mime       = entry.get("mimetype", "")
+            date_str   = f"{ts[:4]}-{ts[4:6]}-{ts[6:8]}" if len(ts) >= 8 else ts
+            wayback_lnk = f"https://web.archive.org/web/{ts}/{url_orig}" if ts else ""
+            results.append((status, date_str, mime, url_orig, wayback_lnk))
+            flag = ""
+            if any(x in url_orig.lower() for x in ("password", "secret", "token", "key", "backup", "admin")):
+                flag = G + " ← MENARIK" + W
+            print(f"[{status}] {date_str} | {mime[:25]:<25} | {url_orig[:80]}{flag}")
+
+        if input("\nSimpan ke TXT? (y/n): ").strip().lower() == "y":
+            out = Path(f"wayback_{domain}_{choice}.txt")
+            lines = [f"Wayback CDX Recon — {domain} — {filter_name}", "=" * 60, ""]
+            for status, date, mime, url_o, wb in results:
+                lines.append(f"[{status}] {date} | {mime} | {url_o}")
+                if wb:
+                    lines.append(f"  Wayback: {wb}")
+            out.write_text("\n".join(lines), encoding="utf-8")
+            print(G + "Disimpan:", out.resolve(), W)
+
+    except Exception as e:
+        print(R + f"CDX API gagal: {e}" + W)
+
+    print(C + "\n[Wayback Manual]" + W)
+    print(f"https://web.archive.org/web/*/{domain}")
+    print(Y + "\nCatatan: CDX API hanya menampilkan URL yang pernah diindeks Wayback. URL yang tidak pernah di-crawl tidak akan muncul." + W)
+
+
+# ─────────────────────────────────────────────
+# [21] ASN INTELLIGENCE (BGPView)
+#      Cari semua IP range milik satu organisasi
+#      Berguna untuk scope pentest & asset discovery
+#      API gratis — tidak perlu API key
+# ─────────────────────────────────────────────
+def asn_intelligence():
+    print(C + "\nASN Intelligence — Pilih input:" + W)
+    print("[1] Nomor ASN (contoh: AS13335)")
+    print("[2] Nama organisasi (contoh: Cloudflare)")
+    print("[3] Alamat IP (cari ASN dari IP)")
+    mode = input("Pilihan: ").strip()
+
+    BASE = "https://api.bgpview.io"
+
+    if mode == "1":
+        raw = input("ASN (contoh: AS13335 atau 13335): ").strip().upper().lstrip("AS")
+        if not raw.isdigit():
+            print(R + "Format ASN tidak valid." + W)
+            return
+        asn = raw
+        print(Y + f"\nMengambil info ASN {asn}...\n" + W)
+        try:
+            data = fetch_json(f"{BASE}/asn/{asn}")
+            info = data.get("data", {})
+            print(C + "[Info ASN]" + W)
+            print(f"ASN         : AS{info.get('asn')}")
+            print(f"Nama        : {info.get('name', 'Tidak tersedia')}")
+            print(f"Deskripsi   : {info.get('description_short', '')}")
+            print(f"Negara      : {info.get('country_code', '')}")
+            print(f"Website     : {info.get('website', '')}")
+            print(f"RIR         : {info.get('rir_allocation', {}).get('rir_name', '')}")
+
+            # IP prefixes
+            pfx_data = fetch_json(f"{BASE}/asn/{asn}/prefixes")
+            v4 = pfx_data.get("data", {}).get("ipv4_prefixes", [])
+            v6 = pfx_data.get("data", {}).get("ipv6_prefixes", [])
+
+            if v4:
+                print(C + f"\n[IPv4 Prefixes ({len(v4)})]" + W)
+                for p in v4[:30]:
+                    print(f"  {p.get('prefix', '')}  — {p.get('name', '')} ({p.get('description', '')})")
+                if len(v4) > 30:
+                    print(Y + f"  ... dan {len(v4) - 30} prefix lainnya." + W)
+            if v6:
+                print(C + f"\n[IPv6 Prefixes ({len(v6)})]" + W)
+                for p in v6[:10]:
+                    print(f"  {p.get('prefix', '')}")
+
+            # Peers
+            peer_data = fetch_json(f"{BASE}/asn/{asn}/peers")
+            peers_v4 = peer_data.get("data", {}).get("ipv4_peers", [])
+            if peers_v4:
+                print(C + f"\n[BGP Peers ({len(peers_v4)})]" + W)
+                for p in peers_v4[:10]:
+                    print(f"  AS{p.get('asn')} — {p.get('name', '')}")
+
+            if v4 and input("\nSimpan prefix ke TXT? (y/n): ").strip().lower() == "y":
+                out = Path(f"asn_{asn}_prefixes.txt")
+                lines = [f"ASN{asn} IP Prefixes", "=" * 40, ""]
+                lines += [p.get("prefix", "") for p in v4]
+                out.write_text("\n".join(lines), encoding="utf-8")
+                print(G + "Disimpan:", out.resolve(), W)
+
+        except Exception as e:
+            print(R + f"Gagal: {e}" + W)
+
+    elif mode == "2":
+        keyword = input("Nama organisasi: ").strip()
+        if not keyword:
+            print(R + "Nama tidak boleh kosong." + W)
+            return
+        print(Y + f"\nMencari ASN untuk: {keyword}\n" + W)
+        try:
+            data = fetch_json(f"{BASE}/search?query_term={quote_plus(keyword)}")
+            results = data.get("data", {}).get("asns", [])
+            if not results:
+                print(Y + "Tidak ditemukan. Coba kata kunci yang lebih spesifik." + W)
+                return
+            print(G + f"Ditemukan {len(results)} ASN:\n" + W)
+            for item in results[:20]:
+                print(f"  AS{item.get('asn'):<8} | {item.get('name', ''):<30} | {item.get('country_code', '')} | {item.get('description', '')}")
+            print(Y + "\nMasukkan nomor ASN ke mode [1] untuk detail lengkap." + W)
+        except Exception as e:
+            print(R + f"Gagal: {e}" + W)
+
+    elif mode == "3":
+        raw = input("Alamat IP: ").strip()
+        try:
+            ipaddress.ip_address(raw)
+        except ValueError:
+            print(R + "IP tidak valid." + W)
+            return
+        print(Y + f"\nMencari ASN untuk IP {raw}...\n" + W)
+        try:
+            data = fetch_json(f"{BASE}/ip/{raw}")
+            info = data.get("data", {})
+            print(C + "[Info IP]" + W)
+            print(f"IP          : {info.get('ip', raw)}")
+            print(f"RIR         : {info.get('rir_allocation', {}).get('rir_name', '')}")
+            print(f"Alokasi     : {info.get('rir_allocation', {}).get('prefix', '')}")
+            for p in info.get("prefixes", [])[:5]:
+                print(C + "\n[Prefix]" + W)
+                print(f"  Prefix   : {p.get('prefix', '')}")
+                print(f"  Nama     : {p.get('name', '')}")
+                print(f"  Desc     : {p.get('description', '')}")
+                asns = p.get("asns", [])
+                for a in asns:
+                    print(f"  ASN      : AS{a.get('asn')} — {a.get('name', '')}")
+        except Exception as e:
+            print(R + f"Gagal: {e}" + W)
+    else:
+        print(R + "Pilihan tidak valid." + W)
+        return
+
+    print(C + "\n[BGPView Web]" + W)
+    print("https://bgpview.io")
+    print(Y + "\nCatatan: data BGP adalah routing publik. IP prefix = range yang di-advertise ke internet, bukan selalu range aktif semua digunakan." + W)
+
+
+# ─────────────────────────────────────────────
+# [22] DNS HISTORY & ZONE RECON (HackerTarget)
+#      DNS records, zone transfer test, reverse DNS,
+#      shared hosting check — semua gratis tanpa API key
+# ─────────────────────────────────────────────
+def dns_history_recon():
+    raw = input("Domain atau IP (contoh: example.com / 93.184.216.34): ").strip()
+    if not raw:
+        print(R + "Input tidak boleh kosong." + W)
+        return
+
+    # Tentukan mode: domain atau IP
+    is_ip = False
+    try:
+        ipaddress.ip_address(raw)
+        is_ip = True
+        target = raw
+    except ValueError:
+        target = normalize_domain(raw)
+        if not target:
+            print(R + "Input tidak valid." + W)
+            return
+
+    BASE = "https://api.hackertarget.com"
+
+    if not is_ip:
+        # ── DNS Lookup (A, MX, NS, TXT) ──
+        print(Y + f"\n[1/4] DNS Lookup — {target}...\n" + W)
+        try:
+            url = f"{BASE}/dnslookup/?q={target}"
+            req = urllib.request.Request(url, headers={"User-Agent": "AZ-OSINT-Tool/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as res:
+                text = res.read().decode("utf-8", errors="replace").strip()
+            if "error" not in text.lower():
+                print(text)
+            else:
+                print(Y + text[:200] + W)
+        except Exception as e:
+            print(Y + f"Gagal: {e}" + W)
+
+        # ── Zone Transfer Test ──
+        print(Y + f"\n[2/4] Zone Transfer Test — {target}...\n" + W)
+        try:
+            url = f"{BASE}/zonetransfer/?q={target}"
+            req = urllib.request.Request(url, headers={"User-Agent": "AZ-OSINT-Tool/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as res:
+                text = res.read().decode("utf-8", errors="replace").strip()
+            if "failed" in text.lower() or "refused" in text.lower():
+                print(G + "Zone transfer ditolak — konfigurasi DNS aman." + W)
+                print(text[:300])
+            elif "error" in text.lower() or "API" in text:
+                print(Y + text[:200] + W)
+            else:
+                print(R + "Zone transfer BERHASIL — ini adalah temuan kritis!" + W)
+                print(text[:2000])
+        except Exception as e:
+            print(Y + f"Gagal: {e}" + W)
+
+        # ── Host Search (subdomain dari same domain) ──
+        print(Y + f"\n[3/4] Host Search — {target}...\n" + W)
+        try:
+            url = f"{BASE}/hostsearch/?q={target}"
+            req = urllib.request.Request(url, headers={"User-Agent": "AZ-OSINT-Tool/1.0"})
+            with urllib.request.urlopen(req, timeout=12) as res:
+                text = res.read().decode("utf-8", errors="replace").strip()
+            if "error" not in text.lower() and "API" not in text:
+                lines = [l for l in text.splitlines() if l.strip()]
+                print(G + f"Ditemukan {len(lines)} host:\n" + W)
+                for l in lines[:40]:
+                    print(f"  {l}")
+                if len(lines) > 40:
+                    print(Y + f"  ... dan {len(lines) - 40} lainnya." + W)
+            else:
+                print(Y + text[:200] + W)
+        except Exception as e:
+            print(Y + f"Gagal: {e}" + W)
+
+    # ── Reverse DNS (berlaku untuk domain dan IP) ──
+    ip_to_check = raw if is_ip else None
+    if not is_ip:
+        try:
+            ip_to_check = socket.gethostbyname(target)
+            print(G + f"Domain '{target}' → {ip_to_check}" + W)
+        except Exception:
+            pass
+
+    if ip_to_check:
+        print(Y + f"\n[{'4/4' if not is_ip else '1/1'}] Reverse DNS — {ip_to_check}...\n" + W)
+        try:
+            url = f"{BASE}/reversedns/?q={ip_to_check}"
+            req = urllib.request.Request(url, headers={"User-Agent": "AZ-OSINT-Tool/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as res:
+                text = res.read().decode("utf-8", errors="replace").strip()
+            if "error" not in text.lower() and "API" not in text:
+                print(text)
+            else:
+                print(Y + text[:200] + W)
+        except Exception as e:
+            print(Y + f"Gagal: {e}" + W)
+
+    # ── Manual links ──
+    print(C + "\n[Referensi Manual]" + W)
+    if not is_ip:
+        print(f"DNSDumpster    : https://dnsdumpster.com")
+        print(f"SecurityTrails : https://securitytrails.com/domain/{target}/history")
+        print(f"ViewDNS History: https://viewdns.info/dnsrecord/?domain={target}")
+    print(f"MXToolbox      : https://mxtoolbox.com/SuperTool.aspx?action=dns%3A{raw}")
+
+    print(Y + "\nCatatan: zone transfer yang berhasil pada target produksi = critical finding. HackerTarget free tier dibatasi jumlah query per hari." + W)
+
 while True:
     banner()
     choice = input("AZ-OSINT > ").strip()
@@ -1656,6 +2086,10 @@ while True:
     elif choice == "16": shodan_intelligence()
     elif choice == "17": url_media_metadata()
     elif choice == "18": geo_osint()
+    elif choice == "19": domain_harvester()
+    elif choice == "20": wayback_cdx_recon()
+    elif choice == "21": asn_intelligence()
+    elif choice == "22": dns_history_recon()
     elif choice == "0":
         print("Keluar dari AZ-OSINT-TOOL.")
         sys.exit()
