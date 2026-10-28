@@ -88,6 +88,195 @@ def _dec_to_dms(deg, axis):
     ref = dirs[axis][0] if deg >= 0 else dirs[axis][1]
     return f"{d}\u00b0{m}'{s:.2f}\"{ref}"
 
+# ─────────────────────────────────────────────
+# DATABASE PLAT NOMOR INDONESIA
+# ─────────────────────────────────────────────
+PLAT_DB = {
+    # ── Jawa ──
+    "A":  {"wilayah": "Banten",
+           "kota": "Serang, Cilegon, Pandeglang, Lebak, Tangerang Kota, Serang Kota"},
+    "B":  {"wilayah": "DKI Jakarta / Jabodetabek",
+           "kota": "Jakarta (semua wilayah), Bekasi Kota/Kab, Tangerang Kota/Kab, Depok"},
+    "D":  {"wilayah": "Jawa Barat",
+           "kota": "Bandung Kota, Cimahi, Bandung Barat, Sumedang"},
+    "E":  {"wilayah": "Jawa Barat",
+           "kota": "Cirebon, Indramayu, Majalengka, Kuningan"},
+    "F":  {"wilayah": "Jawa Barat",
+           "kota": "Bogor Kota/Kab, Sukabumi Kota/Kab, Cianjur"},
+    "G":  {"wilayah": "Jawa Tengah",
+           "kota": "Pekalongan, Batang, Pemalang, Tegal, Brebes"},
+    "H":  {"wilayah": "Jawa Tengah",
+           "kota": "Semarang, Kendal, Demak, Salatiga, Ungaran"},
+    "K":  {"wilayah": "Jawa Tengah",
+           "kota": "Pati, Kudus, Jepara, Rembang, Blora, Grobogan, Purwodadi"},
+    "R":  {"wilayah": "Jawa Tengah",
+           "kota": "Banyumas, Cilacap, Purbalingga, Banjarnegara"},
+    "T":  {"wilayah": "Jawa Barat",
+           "kota": "Purwakarta, Karawang, Subang"},
+    "Z":  {"wilayah": "Jawa Barat",
+           "kota": "Garut, Tasikmalaya, Ciamis, Kota Banjar, Pangandaran"},
+    "L":  {"wilayah": "Jawa Timur",
+           "kota": "Surabaya"},
+    "M":  {"wilayah": "Jawa Timur",
+           "kota": "Madura — Bangkalan, Sampang, Pamekasan, Sumenep"},
+    "N":  {"wilayah": "Jawa Timur",
+           "kota": "Malang, Batu, Pasuruan, Probolinggo, Lumajang"},
+    "P":  {"wilayah": "Jawa Timur",
+           "kota": "Jember, Banyuwangi, Bondowoso, Situbondo"},
+    "S":  {"wilayah": "Jawa Timur",
+           "kota": "Bojonegoro, Tuban, Lamongan"},
+    "W":  {"wilayah": "Jawa Timur",
+           "kota": "Sidoarjo, Gresik"},
+    "AA": {"wilayah": "Jawa Tengah",
+           "kota": "Magelang, Temanggung, Wonosobo, Purworejo, Kebumen"},
+    "AB": {"wilayah": "DI Yogyakarta",
+           "kota": "Yogyakarta, Sleman, Bantul, Kulon Progo, Gunung Kidul"},
+    "AD": {"wilayah": "Jawa Tengah",
+           "kota": "Solo, Sukoharjo, Boyolali, Sragen, Karanganyar, Wonogiri, Klaten"},
+    "AE": {"wilayah": "Jawa Timur",
+           "kota": "Madiun, Ngawi, Magetan, Ponorogo, Pacitan"},
+    "AG": {"wilayah": "Jawa Timur",
+           "kota": "Kediri, Tulungagung, Blitar, Trenggalek, Nganjuk"},
+    # ── Sumatera ──
+    "BA": {"wilayah": "Sumatera Barat",
+           "kota": "Padang, Bukittinggi, Payakumbuh, dan seluruh kab/kota Sumbar"},
+    "BB": {"wilayah": "Sumatera Utara",
+           "kota": "Tapanuli — Sibolga, Tapanuli Tengah, Tapanuli Selatan, Padang Sidempuan"},
+    "BD": {"wilayah": "Bengkulu",
+           "kota": "Bengkulu dan seluruh kabupaten Bengkulu"},
+    "BE": {"wilayah": "Lampung",
+           "kota": "Bandar Lampung dan seluruh Lampung"},
+    "BG": {"wilayah": "Sumatera Selatan",
+           "kota": "Palembang, Prabumulih, Pagaralam, Lubuklinggau, dan kab Sumsel"},
+    "BH": {"wilayah": "Jambi",
+           "kota": "Jambi dan seluruh kabupaten Jambi"},
+    "BK": {"wilayah": "Sumatera Utara",
+           "kota": "Medan, Deli Serdang, Binjai, Tebing Tinggi, Langkat, Karo, Simalungun, Dairi"},
+    "BL": {"wilayah": "Aceh",
+           "kota": "Banda Aceh dan seluruh Aceh"},
+    "BM": {"wilayah": "Riau",
+           "kota": "Pekanbaru, Dumai, dan seluruh Riau daratan"},
+    "BN": {"wilayah": "Kepulauan Bangka Belitung",
+           "kota": "Pangkalpinang, Bangka, Belitung, Bangka Barat, Bangka Tengah, Bangka Selatan"},
+    "BP": {"wilayah": "Kepulauan Riau",
+           "kota": "Batam, Tanjungpinang, Bintan, Karimun, Natuna, Lingga, Anambas"},
+    "BV": {"wilayah": "Sumatera Selatan",
+           "kota": "OKU, Ogan Komering Ulu, Muara Enim (sub-area Sumsel)"},
+    # ── Kalimantan ──
+    "DA": {"wilayah": "Kalimantan Selatan",
+           "kota": "Banjarmasin, Banjarbaru, dan seluruh Kalsel"},
+    "KB": {"wilayah": "Kalimantan Barat",
+           "kota": "Pontianak, Singkawang, dan seluruh Kalbar"},
+    "KH": {"wilayah": "Kalimantan Tengah",
+           "kota": "Palangkaraya dan seluruh Kalteng"},
+    "KT": {"wilayah": "Kalimantan Timur",
+           "kota": "Samarinda, Balikpapan, Bontang, dan seluruh Kaltim"},
+    "KU": {"wilayah": "Kalimantan Utara",
+           "kota": "Tarakan, Bulungan, Nunukan, Malinau, Tana Tidung"},
+    # ── Sulawesi ──
+    "DB": {"wilayah": "Sulawesi Utara",
+           "kota": "Manado, Bitung, Tomohon, Kotamobagu, dan kab Sulut"},
+    "DC": {"wilayah": "Sulawesi Barat",
+           "kota": "Mamuju dan seluruh Sulbar"},
+    "DD": {"wilayah": "Sulawesi Selatan",
+           "kota": "Makassar, Pare-Pare, Palopo, dan seluruh Sulsel"},
+    "DE": {"wilayah": "Maluku",
+           "kota": "Ambon dan seluruh Maluku"},
+    "DG": {"wilayah": "Sulawesi Selatan",
+           "kota": "Gowa, Takalar, Jeneponto (sub-area Sulsel)"},
+    "DH": {"wilayah": "NTT",
+           "kota": "Kupang Kota/Kab dan sekitar"},
+    "DL": {"wilayah": "Sulawesi Utara",
+           "kota": "Kepulauan Sangihe, Talaud, Sitaro"},
+    "DM": {"wilayah": "Gorontalo",
+           "kota": "Gorontalo Kota dan seluruh provinsi Gorontalo"},
+    "DN": {"wilayah": "Sulawesi Tengah",
+           "kota": "Palu dan seluruh Sulteng"},
+    "DT": {"wilayah": "Sulawesi Tenggara",
+           "kota": "Kendari, Baubau, dan seluruh Sultra"},
+    "DW": {"wilayah": "Sulawesi Selatan",
+           "kota": "Bulukumba, Selayar, Bantaeng (sub-area Sulsel)"},
+    # ── Bali & Nusa Tenggara ──
+    "DK": {"wilayah": "Bali",
+           "kota": "Denpasar, Badung, Gianyar, Tabanan, Klungkung, Bangli, Karangasem, Buleleng, Jembrana"},
+    "DR": {"wilayah": "NTB",
+           "kota": "Mataram, Lombok Barat, Lombok Tengah, Lombok Timur, Lombok Utara"},
+    "EA": {"wilayah": "NTB",
+           "kota": "Sumbawa Besar, Dompu, Bima — Pulau Sumbawa"},
+    "EB": {"wilayah": "NTT",
+           "kota": "Flores — Ende, Sikka, Flores Timur, Ngada, Manggarai, dll"},
+    "ED": {"wilayah": "NTT",
+           "kota": "Sumba — Sumba Barat, Sumba Timur, Sumba Tengah, Sumba Barat Daya"},
+    # ── Papua & Maluku Utara ──
+    "PA": {"wilayah": "Papua",
+           "kota": "Jayapura dan wilayah Papua (induk)"},
+    "PB": {"wilayah": "Papua Barat",
+           "kota": "Manokwari, Sorong, Raja Ampat, dan seluruh Papua Barat"},
+    "PG": {"wilayah": "Papua Pegunungan",
+           "kota": "Wamena, Jayawijaya, dan wilayah pegunungan Papua"},
+    "PP": {"wilayah": "Papua Selatan",
+           "kota": "Merauke, Boven Digoel, Mappi, Asmat"},
+    "PT": {"wilayah": "Papua Tengah",
+           "kota": "Nabire, Paniai, Mimika, Puncak, Puncak Jaya, Dogiyai, Intan Jaya, Deiyai"},
+    "SA": {"wilayah": "Maluku Utara",
+           "kota": "Ternate, Tidore, dan seluruh Maluku Utara"},
+}
+
+WARNA_PLAT = {
+    "1": ("Hitam",   "Kendaraan pribadi — format lama"),
+    "2": ("Putih",   "Kendaraan pribadi — format baru (berlaku bertahap sejak 2022)"),
+    "3": ("Kuning",  "Angkutan umum / kendaraan niaga / komersial"),
+    "4": ("Merah",   "Kendaraan dinas pemerintah / TNI / Polri"),
+    "5": ("Hijau",   "Kawasan Free Trade Zone — Batam, Bintan, Karimun"),
+}
+
+def _jakarta_sub(seri):
+    """Estimasi sub-wilayah Jakarta dari huruf pertama seri."""
+    if not seri:
+        return None
+    f = seri[0].upper()
+    if f in "ABCDEF": return "Jakarta Pusat / Kota"
+    if f in "GHIJ":   return "Jakarta Utara"
+    if f in "KLMN":   return "Jakarta Barat"
+    if f in "PQRS":   return "Jakarta Selatan"
+    if f in "TUVWXYZ": return "Jakarta Timur / Bekasi / Tangerang"
+    return None
+
+
+# ─────────────────────────────────────────────
+# HELPER — image geo tools (dipakai modul 23 & 24)
+# ─────────────────────────────────────────────
+def _print_maps_links(lat, lon, source=""):
+    print(G + f"\n[GPS — {source}]" + W)
+    print(f"Koordinat     : {lat:.6f}, {lon:.6f}")
+    print(f"Google Maps   : https://maps.google.com/?q={lat},{lon}")
+    print(f"Street View   : https://www.google.com/maps/@{lat},{lon},3a,90y,0h,90t/data=!3m1!1e3")
+    print(f"Satellite     : https://www.google.com/maps/@{lat},{lon},18z/data=!3m1!1e3")
+    print(f"Google Earth  : https://earth.google.com/web/@{lat},{lon},0a,500d,35y,0h,45t,0r")
+    print(f"OpenStreetMap : https://www.openstreetmap.org/?mlat={lat}&mlon={lon}&zoom=17")
+    try:
+        req = urllib.request.Request(
+            f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json",
+            headers={"User-Agent": "AZ-OSINT-Tool/1.0"}
+        )
+        with urllib.request.urlopen(req, timeout=8) as res:
+            geo = json.loads(res.read().decode("utf-8"))
+        print(G + f"Lokasi        : {geo.get('display_name', '')}" + W)
+    except Exception:
+        pass
+
+
+def _print_ai_geo_tools():
+    print(C + "\n[AI Geolocation Tools — upload manual di browser]" + W)
+    print(f"GeoSpy AI   : https://geospy.ai")
+    print(f"  → Upload foto → AI prediksi koordinat → link Google Maps langsung")
+    print(f"Picarta AI  : https://picarta.ai")
+    print(f"  → Mirip GeoSpy, berbasis neural network geolocation")
+    print(f"Google Lens : https://lens.google.com")
+    print(f"  → Deteksi landmark, gedung, papan nama → tampilkan lokasi")
+    print(f"Yandex      : https://yandex.com/images")
+    print(f"  → Reverse image search — akurat untuk Asia & Eropa Timur")
+    print(Y + "\nCatatan: AI geolocation tanpa GPS bergantung pada landmark visual — gedung, vegetasi, arsitektur, papan jalan. GeoSpy & Picarta adalah tool paling dedicated untuk ini." + W)
 
 MAC_EPOCH = 2082844800  # detik antara Mac epoch (1904) dan Unix epoch (1970)
 
@@ -212,6 +401,9 @@ def banner():
     print("[20] Wayback Machine CDX Recon")
     print("[21] ASN Intelligence (BGPView)")
     print("[22] DNS History & Zone Recon")
+    print(C + "-" * 33 + W)
+    print("[23] Plat Nomor Indonesia")
+    print("[24] Image Geolocation (Gambar → Maps)")
     print("[0]  Exit")
     print("=" * 33)
 
@@ -2065,6 +2257,199 @@ def dns_history_recon():
 
     print(Y + "\nCatatan: zone transfer yang berhasil pada target produksi = critical finding. HackerTarget free tier dibatasi jumlah query per hari." + W)
 
+
+# ─────────────────────────────────────────────
+# [23] PLAT NOMOR INDONESIA
+# ─────────────────────────────────────────────
+def plat_nomor():
+    raw = input("Plat nomor (contoh: B 1234 ABC / AB1234CD): ").strip().upper()
+    clean = re.sub(r'\s+', ' ', raw).strip()
+
+    match = re.match(r'^([A-Z]{1,2})\s*(\d{1,4})\s*([A-Z]{1,3})?$', clean)
+    if not match:
+        print(R + "Format tidak dikenali. Contoh: B 1234 ABC atau DK 4321 XY" + W)
+        return
+
+    kode  = match.group(1)
+    angka = match.group(2)
+    seri  = match.group(3) or ""
+
+    info = PLAT_DB.get(kode)
+    if not info:
+        print(R + f"Kode wilayah '{kode}' tidak ada dalam database." + W)
+        print(Y + "Kemungkinan kode baru pasca-pemekaran provinsi, plat khusus, atau input salah." + W)
+        return
+
+    plat_display = f"{kode} {angka} {seri}".strip()
+    print(C + f"\n[Plat Nomor: {plat_display}]" + W)
+    print(f"Kode wilayah  : {kode}")
+    print(f"Provinsi      : {info['wilayah']}")
+    print(f"Kota/Kab      : {info['kota']}")
+
+    if kode == "B" and seri:
+        sub = _jakarta_sub(seri)
+        if sub:
+            print(f"Sub-wilayah   : {sub} (estimasi dari seri '{seri}')")
+
+    print(f"Nomor         : {angka}")
+    if seri:
+        print(f"Seri          : {seri}")
+
+    # Warna
+    print(C + "\n[Warna Plat — masukkan untuk identifikasi kategori]" + W)
+    for k, (warna, desc) in WARNA_PLAT.items():
+        print(f"  [{k}] {warna:<8} — {desc}")
+    wc = input("Pilihan warna (Enter = skip): ").strip()
+    if wc in WARNA_PLAT:
+        warna, desc = WARNA_PLAT[wc]
+        print(G + f"\nKategori : {warna} — {desc}" + W)
+        if warna == "Kuning":
+            print(Y + "Kendaraan angkutan umum atau niaga. Wajib uji KIR berkala." + W)
+        elif warna == "Merah":
+            print(Y + "Kendaraan dinas. Tidak bisa diperjualbelikan ke swasta." + W)
+        elif warna == "Hijau":
+            print(Y + "Kendaraan FTZ — tidak boleh dibawa keluar kawasan bebas tanpa izin Bea Cukai." + W)
+
+    # Ganjil-genap (khusus B)
+    if kode == "B" and angka:
+        last = int(angka[-1])
+        print(C + "\n[Ganjil-Genap — Jakarta]" + W)
+        tipe = "GANJIL" if last % 2 == 1 else "GENAP"
+        hari = "tanggal ganjil" if last % 2 == 1 else "tanggal genap"
+        print(f"Digit terakhir {angka[-1]} → {tipe} — melintas di hari {hari}")
+        print(Y + "Berlaku di ruas tertentu Jakarta pukul 06.00–10.00 & 16.00–21.00 hari kerja." + W)
+
+    # Digital search
+    plat_q   = quote_plus(plat_display)
+    plat_q2  = quote_plus(f"{kode}{angka}{seri}")
+    print(C + "\n[Pencarian Digital]" + W)
+    print(f"Google        : https://www.google.com/search?q={plat_q}+OR+{plat_q2}")
+    print(f"Google Images : https://www.google.com/search?q={plat_q}&tbm=isch")
+    print(f"Twitter/X     : https://x.com/search?q={plat_q}")
+    print(f"Facebook      : https://www.google.com/search?q={plat_q}+site%3Afacebook.com")
+    print(f"Marketplace   : https://www.google.com/search?q={plat_q}+site%3Aolx.co.id+OR+site%3Amudah.id")
+
+    # Cek resmi
+    print(C + "\n[Cek Resmi — buka manual di browser]" + W)
+    print(f"e-Samsat Nasional : https://e-samsat.id")
+    print(f"Signal (Samsat)   : Buka aplikasi Signal → Cek Ranmor")
+    print(f"e-Tilang          : https://etle-pmj.id/id/search")
+    if kode == "B":
+        print(f"Samsat Jakarta    : https://samsat-pkb2.jakarta.go.id")
+
+    if input("\nSimpan ke TXT? (y/n): ").strip().lower() == "y":
+        out = Path(f"plat_{kode}{angka}{seri}.txt")
+        lines = [
+            f"Plat Nomor: {plat_display}", "=" * 40,
+            f"Kode     : {kode}",
+            f"Provinsi : {info['wilayah']}",
+            f"Kota/Kab : {info['kota']}",
+        ]
+        out.write_text("\n".join(lines), encoding="utf-8")
+        print(G + "Disimpan:", out.resolve(), W)
+
+    print(Y + "\nCatatan: tool ini hanya parsing kode wilayah dari data publik resmi. Nama pemilik, alamat, STNK, nomor rangka/mesin TIDAK tersedia — hanya bisa diakses oleh Samsat/Polri dengan otorisasi." + W)
+
+
+# ─────────────────────────────────────────────
+# [24] IMAGE GEOLOCATION — Gambar → Google Maps
+#      EXIF GPS → langsung Maps
+#      Tanpa GPS → link ke GeoSpy AI, Picarta, Google Lens, Yandex
+# ─────────────────────────────────────────────
+def image_geolocation():
+    print(C + "\nImage Geolocation — Pilih mode:" + W)
+    print("[1] File gambar lokal (ekstrak EXIF GPS)")
+    print("[2] URL gambar (ekstrak EXIF + reverse image links)")
+    print("[3] Tidak punya gambar — langsung ke daftar AI tools")
+    mode = input("Pilihan: ").strip()
+
+    if mode == "1":
+        path = input("Path file gambar: ").strip().strip('"')
+        file = Path(path).expanduser()
+        if not file.is_file():
+            print(R + "File tidak ditemukan." + W)
+            return
+        try:
+            from PIL import Image
+            from PIL.ExifTags import TAGS, GPSTAGS
+            with Image.open(file) as img:
+                print(C + f"\n[{file.name}] {img.format} {img.size[0]}×{img.size[1]}px" + W)
+                exif = img.getexif()
+            if not exif:
+                print(Y + "Tidak ada EXIF di file ini." + W)
+                _print_ai_geo_tools()
+                return
+            lat = lon = None
+            for key, val in exif.items():
+                if TAGS.get(key) == "GPSInfo":
+                    gps = {GPSTAGS.get(k, k): v for k, v in val.items()}
+                    lat = _gps_to_decimal(gps.get("GPSLatitude"), gps.get("GPSLatitudeRef", "N"))
+                    lon = _gps_to_decimal(gps.get("GPSLongitude"), gps.get("GPSLongitudeRef", "E"))
+                    break
+            if lat and lon:
+                _print_maps_links(lat, lon, f"EXIF dari {file.name}")
+            else:
+                print(Y + "EXIF ada tapi tidak ada GPS — kemungkinan foto dari kamera tanpa GPS." + W)
+                _print_ai_geo_tools()
+        except ImportError:
+            print(R + "Pillow belum terpasang. pip install Pillow" + W)
+        except Exception as e:
+            print(R + f"Gagal: {e}" + W)
+            _print_ai_geo_tools()
+
+    elif mode == "2":
+        img_url = input("URL gambar: ").strip()
+        if not img_url:
+            print(R + "URL tidak boleh kosong." + W)
+            return
+        if "://" not in img_url:
+            img_url = "https://" + img_url
+
+        lat = lon = None
+        try:
+            from PIL import Image
+            from PIL.ExifTags import TAGS, GPSTAGS
+            req = urllib.request.Request(img_url, headers={
+                "User-Agent": "Mozilla/5.0 AZ-OSINT-Tool/1.0"
+            })
+            with urllib.request.urlopen(req, timeout=15) as res:
+                data = res.read(8_000_000)
+            with Image.open(io.BytesIO(data)) as img:
+                fname = urlparse(img_url).path.split("/")[-1] or "image"
+                print(C + f"\n[{fname}] {img.format} {img.size[0]}×{img.size[1]}px" + W)
+                exif = img.getexif()
+            if exif:
+                for key, val in exif.items():
+                    if TAGS.get(key) == "GPSInfo":
+                        gps = {GPSTAGS.get(k, k): v for k, v in val.items()}
+                        lat = _gps_to_decimal(gps.get("GPSLatitude"), gps.get("GPSLatitudeRef", "N"))
+                        lon = _gps_to_decimal(gps.get("GPSLongitude"), gps.get("GPSLongitudeRef", "E"))
+                        break
+        except ImportError:
+            print(R + "Pillow belum terpasang. pip install Pillow" + W)
+        except Exception as e:
+            print(Y + f"Tidak bisa baca EXIF: {e}" + W)
+
+        if lat and lon:
+            _print_maps_links(lat, lon, "EXIF dari URL gambar")
+        else:
+            print(Y + "\nTidak ada GPS EXIF — platform kemungkinan sudah strip metadata." + W)
+
+        # Reverse image search — selalu tampil untuk mode URL
+        enc = quote_plus(img_url)
+        print(C + "\n[Reverse Image Search — buka di browser]" + W)
+        print(f"Google Lens  : https://lens.google.com/uploadbyurl?url={enc}")
+        print(f"Yandex       : https://yandex.com/images/search?rpt=imageview&url={enc}")
+        print(f"Bing Visual  : https://www.bing.com/images/search?view=detailv2&iss=sbi&q=imgurl:{enc}")
+        print(f"TinEye       : https://tineye.com/search?url={enc}")
+        _print_ai_geo_tools()
+
+    elif mode == "3":
+        _print_ai_geo_tools()
+
+    else:
+        print(R + "Pilihan tidak valid." + W)
+
 while True:
     banner()
     choice = input("AZ-OSINT > ").strip()
@@ -2090,6 +2475,8 @@ while True:
     elif choice == "20": wayback_cdx_recon()
     elif choice == "21": asn_intelligence()
     elif choice == "22": dns_history_recon()
+    elif choice == "23": plat_nomor()
+    elif choice == "24": image_geolocation()
     elif choice == "0":
         print("Keluar dari AZ-OSINT-TOOL.")
         sys.exit()
