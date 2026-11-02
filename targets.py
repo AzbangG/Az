@@ -89,7 +89,7 @@ TARGETS = [
         'name': 'Astra Daihatsu',
         'post_type': 'astra_daihatsu',
         'number_fmt': fmt_plus,
-        'success_on': ['OTP Success']
+        'success_on': ['OTP Success', 'message']
     },
     {
         'name': 'Royal Canin',
@@ -163,6 +163,85 @@ TARGETS = [
         'number_fmt': fmt_08,
         'success_on': ['success', 'message']
     },
+    {
+        'name': 'MapClub',
+        'post_type': 'mapclub',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'CMKClub',
+        'post_type': 'cmkclub',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'BabyHappy',
+        'post_type': 'babyhappy',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'BukuAku',
+        'post_type': 'bukuaku',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'Generasi',
+        'post_type': 'generasi',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'Insureka',
+        'post_type': 'insureka',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'Opaper',
+        'post_type': 'opaper',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'Rappi',
+        'post_type': 'rappi',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'Segari',
+        'post_type': 'segari',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'Toyota',
+        'post_type': 'toyota',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'Garasi',
+        'post_type': 'garasi',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'JakartaNote',
+        'post_type': 'jakartanote',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+    {
+        'name': 'KitaBisa',
+        'post_type': 'kitabisa',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
+
     # JSON Handlers
     {
         'name': 'Pinhome',
