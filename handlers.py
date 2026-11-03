@@ -864,6 +864,7 @@ def send_tokopedia_otp(phone_08):
         return None
 
 # ==================== HANDLER 28: PIZZAHUT ====================
+'''
 import tls_client as _tls_client
 
 _PH_BASE      = "https://api-prod.pizzahut.co.id"
@@ -922,7 +923,7 @@ def send_pizzahut_otp(phone_input):
         return reg.status_code, reg.text
     except Exception as e:
         return None, str(e)
-
+'''
 # ==================== HANDLER 29: MAPCLUB ====================
 _MC_BASE        = "https://beryllium.mapclub.com"
 _MC_GUEST_TOKEN = "eyJhbGciOiJIUzUxMiJ9.eyJndWVzdENvZGUiOiIwMzY1MmVlYS01ODZiLTQ0ZTgtOWM1Yi1hZDFkYzQ5ZTljODEiLCJleHBpcmVkIjoxNzkzNTgzMTg1NDI2LCJleHBpcmUiOjM2MDAsInBsYXRmb3JtIjoiV0VCIiwiaWF0IjoxNzkzNTc5NTg1LCJleHAiOjE3OTM1ODMxODV9.iGi2ZnmeRuHdE1nuiacpNnrZhOVoh1jyXvbdmy-Bvv38eyVbvaqEIGU7_3eh9tLRXJPnYpWwyZ8-5Ky7lnUDBQ"
