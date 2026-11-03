@@ -35,13 +35,6 @@ from handlers import (
     send_moladin_otp,send_adiraku_otp,send_tri_otp,send_bmsecure_sofia_otp,
     send_alodokter_otp,send_alomedika_otp,send_bpjs_otp,send_halodoc_otp,
     send_pinhome_otp,send_rumah123_otp,
-    send_tokopedia_wa_otp,send_bmsecure_aci_otp,
-    send_segari_otp2,send_akseleran_otp,send_irmastore_otp,send_tiptip_otp,
-    send_tokoplas_otp,send_toplusms_otp,send_vidio_otp,send_kpoin_otp,
-    send_nusasms_otp,send_berprestasi_otp,send_bisatopup_otp,send_stockbit_otp,
-    send_misteraladin_otp,send_redbus_otp,send_buccheri_otp,send_gabino_otp,
-    send_moladin_otp,send_adiraku_otp,send_tri_otp,send_bmsecure_sofia_otp,
-    send_alodokter_otp,send_alomedika_otp,send_bpjs_otp,send_halodoc_otp,
 )
 from targets import TARGETS
 
