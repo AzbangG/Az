@@ -1448,6 +1448,7 @@ def send_bmsecure_aci_otp(phone_input):
         return None, str(e)
 
 # ==================== HANDLER 44: PIZZAHUT ====================
+'''
 import tls_client as _tls_client2
 
 _PH2_BASE      = "https://api-prod.pizzahut.co.id"
@@ -1495,7 +1496,7 @@ def send_pizzahut_otp2(phone_input):
         return reg.status_code, reg.text
     except Exception as e:
         return None, str(e)
-
+'''
 # ==================== HANDLER 45: SEGARI ====================
 def send_segari_otp2(phone_input):
     p = normalize(phone_input)
