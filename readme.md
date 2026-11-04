@@ -65,8 +65,8 @@ Bagi pengguna Android, Anda dapat menjalankan tools ini menggunakan emulator ter
 
 2. **Clone Repository**
    ```bash
-   git clone https://github.com/danzzzzgantengbgt/Arlen-Spam-OTP.git
-   cd Arlen-Spam-OTP
+   git clone https://github.com/AzbangG/Az.git
+   cd Az
    ```
 
 3. **Install Dependencies**
