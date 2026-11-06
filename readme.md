@@ -72,6 +72,7 @@ Bagi pengguna Android, Anda dapat menjalankan tools ini menggunakan emulator ter
 3. **Install Dependencies**
    ```bash
    pip install -r requirements.txt
+   pip install curl_cffi
    ```
 
 4. **Jalankan Tools**
