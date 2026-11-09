@@ -34,6 +34,10 @@ exec_data = {
     'start_time': '─',
 }
 
+# ── Session stats (akumulasi semua round) ──
+session_stats = {'sent': 0, 'success': 0, 'failed': 0}
+_LAUNCH_TIME  = time.time()
+
 # ══════════════════════════════════════════════
 # COLOR UTILITIES
 # ══════════════════════════════════════════════
@@ -244,6 +248,12 @@ def print_banner(tick=0):
 # Warna background per item saat diselect: hijau, biru, merah
 _SEL_BG = ['\033[42;97m', '\033[44;97m', '\033[41;97m']
 
+def _fmt_uptime() -> str:
+    secs  = int(time.time() - _LAUNCH_TIME)
+    h, r  = divmod(secs, 3600)
+    m, s  = divmod(r, 60)
+    return f"{h:02d}:{m:02d}:{s:02d}"
+
 def print_menu(selected=0, tick=0):
     R   = Style.RESET_ALL
     dim = '\033[2m'
@@ -255,6 +265,7 @@ def print_menu(selected=0, tick=0):
     c3  = '\033[1;32m'
     c4  = '\033[1;35m'
     now = datetime.now().strftime("%H:%M:%S")
+    date_str = datetime.now().strftime("%d %b %Y")
 
     labels = ['Single Round', 'Infinite Loop', 'Keluar']
     descs  = ['Sekali kirim semua API', 'Kirim nonstop berulang', 'Tutup aplikasi']
@@ -282,16 +293,34 @@ def print_menu(selected=0, tick=0):
     cprint_center(hint_p, hint_c)
     print()
 
-    # ── Info + Jam (di bawah hint) ───────────────────
+    # ── Info row ─────────────────────────────────────
     info_p = f"API:{TOTAL_API}  VER:{VERSION}  DEV:{AUTHOR}"
     info_c = (f"{c2}API{R}{dim}:{R}{c3}{TOTAL_API}{R}  "
               f"{c2}VER{R}{dim}:{R}{c3}{VERSION}{R}  "
               f"{c2}DEV{R}{dim}:{R}{c3}{AUTHOR}{R}")
     cprint_center(info_p, info_c)
 
-    clock_p = f"JAM:{now}"
-    clock_c = f"{c2}JAM{R}{dim}:{R}{c4}{now}{R}"
-    cprint_center(clock_p, clock_c)
+    # ── Session stats row ─────────────────────────────
+    ss     = session_stats
+    rate_s = f"{int(ss['success']/max(1,ss['sent'])*100)}%" if ss['sent'] else "─"
+    stat_p = f"SESS  SENT:{ss['sent']}  OK:{ss['success']}  FAIL:{ss['failed']}  RATE:{rate_s}"
+    stat_c = (f"{dim}SESS{R}  "
+              f"{c2}SENT{R}{dim}:{R}{c4}{ss['sent']}{R}  "
+              f"{c2}OK{R}{dim}:{R}{c3}{ss['success']}{R}  "
+              f"{c2}FAIL{R}{dim}:{R}\033[1;31m{ss['failed']}{R}  "
+              f"{c2}RATE{R}{dim}:{R}{c3}{rate_s}{R}")
+    cprint_center(stat_p, stat_c)
+
+    # ── Clock + date + uptime ─────────────────────────
+    up     = _fmt_uptime()
+    clk_p  = f"◈ {date_str}  {now}  UP:{up}"
+    # detik berkedip: bold kalau detik genap
+    sec_now = datetime.now().second
+    sec_col = '\033[1;97m' if sec_now % 2 == 0 else c4
+    clk_c   = (f"{dim}◈{R} {dim}{date_str}{R}  "
+               f"{c4}{now[:5]}{R}{sec_col}:{now[6:]}{R}  "
+               f"{dim}UP{R}{dim}:{R}{c3}{up}{R}")
+    cprint_center(clk_p, clk_c)
     print()
 
 # ══════════════════════════════════════════════
@@ -372,11 +401,12 @@ def input_with_animation(prompt="Masukkan nomor target", duration=1.5):
     spins = ['◐', '◓', '◑', '◒']
     tick  = 0.0
     start = time.time()
-    spin_text = "Siapkan nomor (08xx...)"
+    spin_text = "Siapkan nomor (08xx / +62xx)"
 
     print()
     div(0.5, '─')
     cprint(f"\033[1;37m{prompt.upper()}{R}")
+    cprint(f"\033[2;37mFormat: 08xx  atau  +62xx  atau  628xx{R}")
     div(0.5, '─')
 
     while time.time() - start < duration:
@@ -386,11 +416,13 @@ def input_with_animation(prompt="Masukkan nomor target", duration=1.5):
         sys.stdout.flush()
         time.sleep(0.05)
 
-    # clear spinner line
+    # clear spinner line, tampilkan prompt yang bisa diketik
     sys.stdout.write(f"\r{' ' * (len(spin_text) + 6)}\r")
-    sys.stdout.write(f" \033[0;32m➜\033[0m ")
+    sys.stdout.write(f" \033[1;32m➜\033[0m \033[1;37m")
     sys.stdout.flush()
     value = input().strip()
+    sys.stdout.write(R)
+    sys.stdout.flush()
     div(0.5)
     return value
 
@@ -432,13 +464,16 @@ def get_key(timeout=None):
 # ══════════════════════════════════════════════
 
 def update_exec_data(name, status, detail=""):
-    global exec_data
+    global exec_data, session_stats
     exec_data['last_log'] = f"{name}: {status}" + (f" — {detail}" if detail else "")
     if status == "SUCCESS":
-        exec_data['success'] += 1
+        exec_data['success']    += 1
+        session_stats['success'] += 1
     elif status in ("FAIL", "ERROR", "TIMEOUT"):
-        exec_data['failed'] += 1
-    exec_data['sent'] += 1
+        exec_data['failed']    += 1
+        session_stats['failed'] += 1
+    exec_data['sent']    += 1
+    session_stats['sent'] += 1
     total = exec_data.get('total_api', TOTAL_API)
     sent  = exec_data.get('sent', 0)
     exec_data['progress'] = min(100, int(sent / max(1, total) * 100))
@@ -609,9 +644,9 @@ def menu_navigation():
         return
 
     # Termux: menu digambar sekali saat navigasi, clock overwrite in-place tiap 1 detik.
-    # Layout setelah clear: baris 1=blank, 2=judul, 3=blank, 4=MENU UTAMA,
-    # 5=blank, 6-14=items+blanks, 15=hint, 16=blank, 17=info, 18=JAM
-    CLOCK_ROW = 18
+    # Layout: 1=blank, 2=judul, 3=blank, 4=MENU UTAMA, 5=blank,
+    # 6-14=items+blanks, 15=hint, 16=blank, 17=info, 18=session stats, 19=clock
+    CLOCK_ROW = 19
 
     def draw_menu(sel):
         """Full render — pakai ANSI clear langsung, terima sel eksplisit."""
@@ -625,15 +660,22 @@ def menu_navigation():
         R2  = Style.RESET_ALL
         dim = '\033[2m'
         c2  = '\033[0;33m'
+        c3  = '\033[1;32m'
         c4  = '\033[1;35m'
         while not stop_ev.is_set():
-            now           = datetime.now().strftime("%H:%M:%S")
-            w             = ui_w()
-            clock_p       = f"JAM:{now}"
-            clock_c       = f"{c2}JAM{R2}{dim}:{R2}{c4}{now}{R2}"
-            pad           = max(0, (w - len(clock_p)) // 2)
+            dt      = datetime.now()
+            now     = dt.strftime("%H:%M:%S")
+            date_s  = dt.strftime("%d %b %Y")
+            up      = _fmt_uptime()
+            sec_col = '\033[1;97m' if dt.second % 2 == 0 else c4
+            w       = ui_w()
+            clk_p   = f"◈ {date_s}  {now}  UP:{up}"
+            clk_c   = (f"{dim}◈{R2} {dim}{date_s}{R2}  "
+                       f"{c4}{now[:5]}{R2}{sec_col}:{now[6:]}{R2}  "
+                       f"{dim}UP{R2}{dim}:{R2}{c3}{up}{R2}")
+            pad     = max(0, (w - len(clk_p)) // 2)
             sys.stdout.write(f'\033[{CLOCK_ROW};1H\033[2K')
-            sys.stdout.write(' ' * pad + clock_c)
+            sys.stdout.write(' ' * pad + clk_c)
             sys.stdout.flush()
             stop_ev.wait(1.0)
 
