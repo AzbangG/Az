@@ -57,6 +57,12 @@ Ikuti langkah-langkah berikut untuk menginstal dan menjalankan tools ini di ling
 
 Bagi pengguna Android, Anda dapat menjalankan tools ini menggunakan emulator terminal Termux:
 
+**Termux Installation**
+```bash
+  https://f-droid.org/repo/com.termux_1022.apk
+  https://f-droid.org/repo/com.termux.api_1002.apk
+```
+---
 1. **Update & Install Packages**
    ```bash
    pkg update && pkg upgrade
