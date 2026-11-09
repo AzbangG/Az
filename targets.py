@@ -185,7 +185,7 @@ TARGETS = [
         'name': 'BukuAku',
         'post_type': 'bukuaku',
         'number_fmt': fmt_08,
-        'success_on': ['success', 'message']
+        'success_on': ['en', 'message']
     },
     {
         'name': 'Generasi',
@@ -197,7 +197,7 @@ TARGETS = [
         'name': 'Insureka',
         'post_type': 'insureka',
         'number_fmt': fmt_08,
-        'success_on': ['success', 'message']
+        'success_on': ['message', 'success']
     },
     {
         'name': 'Opaper',
@@ -233,13 +233,25 @@ TARGETS = [
         'name': 'JakartaNote',
         'post_type': 'jakartanote',
         'number_fmt': fmt_08,
-        'success_on': ['success', 'message']
+        'success_on': ['data', 'createMemberOtp']
     },
     {
         'name': 'KitaBisa',
         'post_type': 'kitabisa',
         'number_fmt': fmt_08,
         'success_on': ['success', 'message']
+    },
+    {
+        'name': 'EasyCash',
+        'post_type': 'easycash',
+        'number_fmt': fmt_08,
+        'success_on': ['status', 'detail']
+    },
+    {
+        'name': 'KreditPintar',
+        'post_type': 'kreditpintar',
+        'number_fmt': fmt_08,
+        'success_on': ['batchNo']
     },
 
     # JSON Handlers
@@ -328,11 +340,17 @@ TARGETS = [
         'number_fmt': fmt_08,
         'success_on': ['otp','success','code','already exists']
     },
+    {
+        'name': 'SkillAcademy',
+        'post_type': 'skillacademy',
+        'number_fmt': fmt_08,
+        'success_on': ['success', 'message']
+    },
 
     # ── Handler 42-70 dari APK SYAM ──────────────────────────────────────────
     {'name':'Tokopedia WA',    'post_type':'tokopedia_wa',    'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'BMSecure ACI',    'post_type':'bmsecure_aci',    'number_fmt': lambda p: p, 'success_on':['success','message']},
-    {'name':'PizzaHut',        'post_type':'pizzahut2',       'number_fmt': lambda p: p, 'success_on':['success','otp']},
+    {'name':'PizzaHut',        'post_type':'pizzahut2',       'number_fmt': lambda p: p, 'success_on':['Successful','code']},
     {'name':'Segari v2',       'post_type':'segari2',         'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'Akseleran',       'post_type':'akseleran',       'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'IrmaStore',       'post_type':'irmastore',       'number_fmt': lambda p: p, 'success_on':['success','message']},
@@ -341,7 +359,7 @@ TARGETS = [
     {'name':'TopluSMS',        'post_type':'toplusms',        'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'Vidio',           'post_type':'vidio',           'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'Kpoin',           'post_type':'kpoin',           'number_fmt': lambda p: p, 'success_on':['success','message']},
-    {'name':'NusaSMS',         'post_type':'nusasms',         'number_fmt': lambda p: p, 'success_on':['success','message']},
+    {'name':'NusaSMS',         'post_type':'nusasms',         'number_fmt': lambda p: p, 'success_on':['userId','serviceType']},
     {'name':'Berprestasi',     'post_type':'berprestasi',     'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'BisaTopup',       'post_type':'bisatopup',       'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'Stockbit',        'post_type':'stockbit',        'number_fmt': lambda p: p, 'success_on':['success','message']},
@@ -356,7 +374,7 @@ TARGETS = [
     {'name':'Alodokter',       'post_type':'alodokter',       'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'Alomedika',       'post_type':'alomedika',       'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'BPJS TK',         'post_type':'bpjs',            'number_fmt': lambda p: p, 'success_on':['success','message']},
-    {'name':'Halodoc',         'post_type':'halodoc',         'number_fmt': lambda p: p, 'success_on':['success','message']},
+    {'name':'Halodoc',         'post_type':'halodoc',         'number_fmt': lambda p: p, 'success_on':['otp_id','otp_wait_time']},
     {'name':'Pinhome v2',      'post_type':'pinhome',         'number_fmt': lambda p: p, 'success_on':['secretcode','success']},
     {'name':'Rumah123 v2',     'post_type':'rumah123',        'number_fmt': lambda p: p, 'success_on':['requestid','success']},
 ]

