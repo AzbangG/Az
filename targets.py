@@ -20,28 +20,10 @@ TARGETS = [
         'success_on': ['Success Request OTP']
     },
     {
-        'name': 'PlanetBan',
-        'post_type': 'planetban',
-        'number_fmt': fmt_08,
-        'success_on': ['status":true', 'success']
-    },
-    {
-        'name': 'TuneUp',
-        'post_type': 'tuneup',
-        'number_fmt': fmt_08,
-        'success_on': ['"success":true']
-    },
-    {
         'name': 'HashMicro',
         'post_type': 'hashmicro',
         'number_fmt': fmt_phone_only,
         'success_on': ['success', 'thank', 'terimakasih', 'redirect']
-    },
-    {
-        'name': 'Klook',
-        'post_type': 'klook',
-        'number_fmt': fmt_plus,
-        'success_on': ['requestId']
     },
     {
         'name': 'Internet Rakyat',
@@ -53,30 +35,6 @@ TARGETS = [
         'name': 'Ultramilk',
         'post_type': 'ultramilk',
         'number_fmt': lambda p: p,
-        'success_on': ['success']
-    },
-    {
-        'name': 'Kaniva',
-        'post_type': 'kaniva',
-        'number_fmt': fmt_08,
-        'success_on': ['"message":"success"']
-    },
-    {
-        'name': 'Jembatani',
-        'post_type': 'jembatani',
-        'number_fmt': fmt_08,
-        'success_on': ['"success":true']
-    },
-    {
-        'name': 'RCX',
-        'post_type': 'rcx',
-        'number_fmt': fmt_08,
-        'success_on': ['challenge', 'redirecting']
-    },
-    {
-        'name': 'Sahabat Teknisi',
-        'post_type': 'sahabatteknisi',
-        'number_fmt': fmt_08,
         'success_on': ['success']
     },
     {
@@ -92,12 +50,6 @@ TARGETS = [
         'success_on': ['OTP Success', 'message']
     },
     {
-        'name': 'Royal Canin',
-        'post_type': 'royal_canin',
-        'number_fmt': fmt_plus,
-        'success_on': ['SUCCESS']
-    },
-    {
         'name': 'Watsons',
         'post_type': 'watsons',
         'number_fmt': fmt_phone_only,
@@ -110,52 +62,10 @@ TARGETS = [
         'success_on': ['ok']
     },
     {
-        'name': 'Beli Rumah',
-        'post_type': 'belirumahco',
-        'number_fmt': fmt_plus,
-        'success_on': ['success', 'otp', 'code']
-    },
-    {
         'name': 'Fastwork',
         'post_type': 'fastworkid',
         'number_fmt': fmt_08,
         'success_on': ['reference_code']
-    },
-    {
-        'name': 'Beautyhaul',
-        'post_type': 'beautyhaul',
-        'number_fmt': fmt_phone_only,
-        'success_on': []
-    },
-    {
-        'name': 'Hainaya',
-        'post_type': 'hainaya',
-        'number_fmt': fmt_phone_only,
-        'success_on': ['otp', 'success', 'tenant_id', 'session_id']
-    },
-    {
-        'name': 'MinumYukKaka',
-        'post_type': 'minumyukkaka',
-        'number_fmt': fmt_08,
-        'success_on': ['IsSuccess', 'success', 'otp']
-    },
-    {
-        'name': 'SIDEMANG',
-        'post_type': 'sidemang',
-        'number_fmt': fmt_08,
-        'success_on': ['otpDispatched']
-    },
-    {
-        'name': 'LaporMasBup',
-        'post_type': 'lapormasbup',
-        'number_fmt': fmt_08,
-        'success_on': ['berhasil', 'warga_id', 'message']
-    },
-    {
-        'name': 'PTSP Kemenag',
-        'post_type': 'ptspkemenag',
-        'number_fmt': fmt_08,
-        'success_on': ['success', 'user']
     },
     {
         'name': 'Tokopedia',
@@ -253,18 +163,14 @@ TARGETS = [
         'number_fmt': fmt_08,
         'success_on': ['batchNo']
     },
+    {
+        'name': 'PizzaHut',
+        'post_type': 'pizzahut',
+        'number_fmt': fmt_08,
+        'success_on': ['code', 'message']
+    },
 
     # JSON Handlers
-    {
-        'name': 'Pinhome',
-        'post_type': 'json',
-        'url': 'https://www.pinhome.id/api/odyssey/proxy/pinaccount/auth/verification/request-otp',
-        'referer': 'https://www.pinhome.id/daftar',
-        'headers': {'Content-Type':'text/plain;charset=UTF-8','Origin':'https://www.pinhome.id'},
-        'payload': '{"accountType":"customers","applicationType":"Pinhome Web","countryCode":"62","medium":"whatsapp","otpType":"register","phoneNumber":"{number}"}',
-        'number_fmt': fmt_nocode,
-        'success_on': ['secretcode']
-    },
     {
         'name': 'Maulagi',
         'post_type': 'json',
@@ -279,16 +185,6 @@ TARGETS = [
         'payload': '{"credentials":"{number}"}',
         'number_fmt': fmt_08,
         'success_on': ['"status":"success"']
-    },
-    {
-        'name': 'Rumah123',
-        'post_type': 'json',
-        'url': 'https://www.rumah123.com/api/otp/request-otp',
-        'referer': 'https://www.rumah123.com/user/login?redirect=%2Fcustomer%2Fv3%2Fpasang-iklan%2F',
-        'headers': {'Content-Type':'application/json;charset=UTF-8','Origin':'https://www.rumah123.com','base-url-core':'https://www.rumah123.com'},
-        'payload': '{"cancelledRequestId":"{rand}","ipAddress":"{ip}","phoneNumber":"{number}","portalId":1,"type":"WHATSAPP","url":"https://www.rumah123.com/user/login?redirect=%2Fcustomer%2Fv3%2Fpasang-iklan%2F"}',
-        'number_fmt': lambda p: p,
-        'success_on': ['requestid']
     },
     {
         'name': 'Paper',
@@ -363,7 +259,6 @@ TARGETS = [
     {'name':'Berprestasi',     'post_type':'berprestasi',     'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'BisaTopup',       'post_type':'bisatopup',       'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'Stockbit',        'post_type':'stockbit',        'number_fmt': lambda p: p, 'success_on':['success','message']},
-    {'name':'MisterAladin',    'post_type':'misteraladin',    'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'Redbus',          'post_type':'redbus',          'number_fmt': lambda p: p, 'success_on':['success','otp']},
     {'name':'Buccheri',        'post_type':'buccheri',        'number_fmt': lambda p: p, 'success_on':['success','message']},
     {'name':'Gabino',          'post_type':'gabino',          'number_fmt': lambda p: p, 'success_on':['success','message']},
