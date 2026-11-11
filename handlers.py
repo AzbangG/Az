@@ -574,15 +574,13 @@ def send_babyhappy_otp(phone_input):
         "user-agent":         get_random_user_agent(),
     }
     try:
-        resp = requests.post(f"{BASE_URL}/api/registration/new",
-                             headers=headers, json=payload, timeout=15, verify=False)
+        resp = requests.post(f"{BASE_URL}/api/registration/new", headers=headers, json=payload, timeout=15, verify=False)
         if resp.status_code == 200:
             return resp.status_code, resp.text
         # 409 = sudah terdaftar → resend
         if resp.status_code == 409:
             hdrs2 = {**headers, "referer": f"{BASE_URL}/registration"}
-            r2 = requests.post(f"{BASE_URL}/api/registration/resend-otp-phone",
-                               headers=hdrs2, json={"phone": phone_8}, timeout=15, verify=False)
+            r2 = requests.post(f"{BASE_URL}/api/registration/resend-otp-phone", headers=hdrs2, json={"phone": phone_8}, timeout=15, verify=False)
             return r2.status_code, r2.text
         return resp.status_code, resp.text
     except Exception as e:
@@ -805,12 +803,12 @@ def send_rappi_otp(phone_input):
 def send_segari_otp(phone_input):
     p = normalize(phone_input)
     phone = p['fmt_08']
-    BASE_URL = "https://segari.id"
-    API_BASE = "https://api-v2.segari.id"
-    UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+    BASE_URL  = "https://segari.id"
+    API_BASE  = "https://api-v2.segari.id"
+    UA        = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/155.0.0.0 Safari/537.36"
     CLIENT_ID = "23809367d8bd04035ee712c6a68d3daed136a21c16ed29dfc1299d6e0525f2c6"
 
-    def _base_headers(extra={}):
+    def _h(extra={}):
         h = {
             "accept": "*/*", "accept-encoding": "gzip, deflate",
             "accept-language": "id,en-US;q=0.9,en;q=0.8",
@@ -826,25 +824,31 @@ def send_segari_otp(phone_input):
     sess = requests.Session()
     segari_t = ""
     try:
-        resp = sess.get(f"{API_BASE}//v1/auth/init", headers=_base_headers(), timeout=10, verify=False)
+        resp = sess.get(f"{API_BASE}//v1/auth/init", headers=_h(), timeout=10, verify=False)
         segari_t = resp.json().get("data", {}).get("token", "")
     except Exception:
         pass
     if not segari_t:
-        return None, "segari_t token not found"
+        return None, "segari_t not found"
 
     nonce     = str(uuid.uuid4())
     timestamp = int(time.time())
     signature = hmac.new(segari_t.encode(), f"{timestamp}\n{nonce}\nPOST".encode(), hashlib.sha256).hexdigest()
 
     import base64 as _b64, json as _json
-    client_info = _b64.b64encode(_json.dumps({"userAgent": UA, "webdriver": "", "screenResolution": "1366x768", "screenColorDepth": 24, "timezone": "Asia/Jakarta", "timezoneOffset": -420, "language": "id", "languages": "id,en-US,en", "platform": "Win32", "hardwareConcurrency": 4, "deviceMemory": 16, "cookieEnabled": True, "onLine": True}, separators=(",", ":")).encode()).decode()
+    client_info = _b64.b64encode(_json.dumps({
+        "userAgent": UA, "webdriver": "", "screenResolution": "1366x768",
+        "screenColorDepth": 24, "timezone": "Asia/Jakarta", "timezoneOffset": -420,
+        "language": "id", "languages": "id,en-US,en", "platform": "Win32",
+        "hardwareConcurrency": 4, "deviceMemory": 16, "cookieEnabled": True, "onLine": True,
+    }, separators=(",", ":")).encode()).decode()
 
-    headers = _base_headers({
+    headers = _h({
         "content-type": "application/json;charset=UTF-8", "priority": "u=1, i",
         "x-client-id": CLIENT_ID, "x-client-info": client_info,
         "x-segari-n": nonce, "x-segari-pathname": "/login", "x-segari-platform": "web",
-        "x-segari-signature": signature, "x-segari-t": segari_t, "x-segari-timestamp": str(timestamp),
+        "x-segari-signature": signature, "x-segari-t": segari_t,
+        "x-segari-timestamp": str(timestamp),
     })
     try:
         resp = sess.post(f"{API_BASE}//v1/otps/generate", headers=headers, json={"phoneNumber": phone}, timeout=15, verify=False)
@@ -2036,8 +2040,7 @@ def send_skillacademy_otp(phone_input):
             if isinstance(inner, list): inner = inner[0] if inner else {}
             if isinstance(inner, dict):
                 lr    = inner.get("login_response") or {}
-                token = (lr.get("accessToken") or lr.get("token") or
-                         inner.get("accessToken") or inner.get("token") or "")
+                token = (lr.get("accessToken") or lr.get("token") or inner.get("accessToken") or inner.get("token") or "")
             if not token:
                 token = r.headers.get("authorization", "").replace("Bearer ", "")
     except Exception as e:

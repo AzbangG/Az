@@ -98,38 +98,11 @@ def process_target(api, target62, ip, idx, total):
             log_target(idx, total, name, status_text, detail)
             return success
 
-        elif post_type == 'kaniva':
-            number = api['number_fmt'](target62)
-            name_rand = 'User' + ''.join(random.choices(string.ascii_lowercase+string.digits, k=4))
-            resp = send_kaniva_otp(number, name_rand)
-            if resp and resp.status_code in [200, 201]:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
         elif post_type == 'jembatani':
             number = api['number_fmt'](target62)
             name_rand = 'User' + ''.join(random.choices(string.ascii_lowercase+string.digits, k=4))
             password = "Test@" + ''.join(random.choices(string.ascii_letters + string.digits, k=5)) + "#1"
             resp = send_jembatani_otp(number, name_rand, password)
-            if resp and resp.status_code in [200, 201]:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'rcx':
-            number = api['number_fmt'](target62)
-            name_rand = 'User' + ''.join(random.choices(string.ascii_lowercase+string.digits, k=4))
-            email = f'user{random.randint(1000,9999)}@mailnesia.com'
-            resp = send_rcx_otp(number, name_rand, email)
-            if resp and resp.status_code in [302, 303]:
-                status_text, detail, success = "SUCCESS", "OTP triggered", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'sahabatteknisi':
-            number = api['number_fmt'](target62)
-            resp = send_sahabatteknisi_otp(number)
             if resp and resp.status_code in [200, 201]:
                 status_text, detail, success = "SUCCESS", "OTP sent", True
             log_target(idx, total, name, status_text, detail)
@@ -158,14 +131,6 @@ def process_target(api, target62, ip, idx, total):
             log_target(idx, total, name, status_text, detail)
             return success
 
-        elif post_type == 'royal_canin':
-            number = api['number_fmt'](target62)
-            resp = send_royal_canin_otp(number)
-            if resp and resp.status_code == 200:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
         elif post_type == 'watsons':
             number = api['number_fmt'](target62)
             resp = send_watsons_otp(number)
@@ -177,14 +142,6 @@ def process_target(api, target62, ip, idx, total):
         elif post_type == '99co':
             number = api['number_fmt'](target62)
             resp = send_99co_otp(number)
-            if resp and resp.status_code in [200, 201]:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'belirumahco':
-            number = api['number_fmt'](target62)
-            resp = send_belirumah_otp(number)
             if resp and resp.status_code in [200, 201]:
                 status_text, detail, success = "SUCCESS", "OTP sent", True
             log_target(idx, total, name, status_text, detail)
@@ -210,64 +167,6 @@ def process_target(api, target62, ip, idx, total):
             number = api['number_fmt'](target62)
             code, resp = send_erafone_otp(number)
             if code == 200:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'beautyhaul':
-            number = api['number_fmt'](target62)
-            resp = send_beautyhaul_otp(number)
-            if resp and resp.status_code in [200, 201]:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'hainaya':
-            number = api['number_fmt'](target62)
-            resp = send_hainaya_otp(number)
-            if resp and resp.status_code in [200, 201, 409]:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'minumyukkaka':
-            number = api['number_fmt'](target62)
-            resp = send_minumyukkaka_otp(number)
-            if resp and resp.status_code == 200:
-                try:
-                    data = resp.json()
-                    if data.get('IsSuccess') == True:
-                        status_text, detail, success = "SUCCESS", "OTP sent", True
-                except:
-                    status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'sidemang':
-            number = api['number_fmt'](target62)
-            resp = send_sidemang_otp(number)
-            if resp and resp.status_code == 200:
-                try:
-                    data = resp.json()
-                    if data.get('otpDispatched') == True:
-                        status_text, detail, success = "SUCCESS", "OTP sent", True
-                except:
-                    status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'lapormasbup':
-            number = api['number_fmt'](target62)
-            resp, is_resend = send_lapormasbup_otp(number)
-            if resp and resp.status_code in [200, 201]:
-                status_text, detail, success = "SUCCESS", "OTP sent", True
-            log_target(idx, total, name, status_text, detail)
-            return success
-
-        elif post_type == 'ptspkemenag':
-            number = api['number_fmt'](target62)
-            resp = send_ptsp_kemenag_otp(number)
-            if resp and resp.status_code in [200, 201]:
                 status_text, detail, success = "SUCCESS", "OTP sent", True
             log_target(idx, total, name, status_text, detail)
             return success
